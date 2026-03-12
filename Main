@@ -1,0 +1,2344 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+
+// ============================================================
+// DESIGN TOKENS
+// ============================================================
+const C = {
+  forest: "#005C4B", gold: "#E8A020", emerald: "#00876A",
+  dark: "#0A1628", navy: "#112240", warm: "#F8F4EE",
+  paper: "#FFFFFF", muted: "#EDE8DF",
+  success: "#1A7A4A", successBg: "#E8F5EE",
+  warning: "#C47D0E", warningBg: "#FEF3DC",
+  danger: "#C0392B", dangerBg: "#FDECEA",
+  info: "#1A5276", infoBg: "#EAF2FB",
+};
+
+const CHART_COLORS = ["#005C4B","#E8A020","#2E86AB","#A23B72","#F18F01","#C73E1D"];
+
+// ============================================================
+// I18N
+// ============================================================
+const STRINGS = {
+  en: {
+    appName: "Bhobishyot", tagline: "Today's Assessment, Tomorrow's Success",
+    signIn: "Sign In", email: "Email", password: "Password",
+    welcome: "Welcome back", enterDashboard: "Enter Dashboard",
+    overview: "Overview", performance: "Performance", attendance: "Attendance",
+    library: "Digital Library", assessments: "Assessments", notices: "Notice Board",
+    messages: "Messages", profile: "My Profile", students: "Students",
+    teachers: "Teachers", reports: "Reports", national: "National Overview",
+    logout: "Logout", search: "Search...", notifications: "Notifications",
+    loading: "Loading...", save: "Save", cancel: "Cancel", submit: "Submit",
+    student: "Student", parent: "Parent", teacher: "Teacher",
+    admin: "School Admin", government: "Government Officer",
+    cognitiveMap: "Cognitive Map", skillGaps: "Skill Gaps",
+    growthPlan: "Growth Plan", careerPath: "Career Path",
+    gpaPredictor: "GPA Predictor", syllabusProgress: "Syllabus Progress",
+    riskHeatmap: "Risk Heatmap", flaggedStudents: "Flagged Students",
+    cognitiveSkills: "Cognitive Skills", lessonPlans: "Lesson Plans",
+    training: "Training", createAssessment: "Create Assessment",
+    gradeSubmissions: "Grade Submissions", results: "Results",
+    analytics: "Analytics", districtAnalytics: "District Analytics",
+    dropoutRisk: "Dropout Risk", talentEngine: "Talent Engine",
+    policySimulation: "Policy Simulation", aiReports: "AI Reports",
+    transferRec: "Transfer Recommendations", revenue: "Revenue & Funding",
+    markAllRead: "Mark all read", clearAll: "Clear all",
+    offline: "You are offline — showing cached data",
+    noData: "No data available", aiInsight: "AI Insight",
+    highRisk: "High Risk", medRisk: "Medium Risk", lowRisk: "Low Risk",
+    present: "Present", absent: "Absent", late: "Late",
+    pass: "Pass", fail: "Fail", grade: "Grade",
+    subject: "Subject", score: "Score", rank: "Rank",
+    classAvg: "Class Average", highest: "Highest", lowest: "Lowest",
+    passRate: "Pass Rate", total: "Total", enrolled: "Enrolled",
+    schoolOverview: "School Overview", digitalAttendance: "Digital Attendance",
+    studentRecords: "Student Records", teacherRegistry: "Teacher Registry",
+    examResults: "Exam & Results", homeworkTracker: "Homework Tracker",
+    automatedReports: "Automated Reports", fees: "Revenue & Fees",
+    askTeacher: "Ask a Teacher", studyGroups: "Study Groups",
+    smsSent: "SMS sent successfully", sendSMS: "Send SMS",
+    generate: "Generate", download: "Download PDF",
+    approved: "Approved", rejected: "Rejected", pending: "Pending",
+  },
+  bn: {
+    appName: "ভবিষ্যৎ", tagline: "আজকের মূল্যায়ন আগামীর সফলতা",
+    signIn: "প্রবেশ করুন", email: "ইমেইল", password: "পাসওয়ার্ড",
+    welcome: "স্বাগতম", enterDashboard: "ড্যাশবোর্ডে যান",
+    overview: "সংক্ষিপ্ত বিবরণ", performance: "পারফরম্যান্স", attendance: "উপস্থিতি",
+    library: "ডিজিটাল লাইব্রেরি", assessments: "মূল্যায়ন", notices: "নোটিশ বোর্ড",
+    messages: "বার্তা", profile: "আমার প্রোফাইল", students: "শিক্ষার্থী",
+    teachers: "শিক্ষক", reports: "প্রতিবেদন", national: "জাতীয় সংক্ষিপ্ত বিবরণ",
+    logout: "লগআউট", search: "খুঁজুন...", notifications: "বিজ্ঞপ্তি",
+    loading: "লোড হচ্ছে...", save: "সংরক্ষণ", cancel: "বাতিল", submit: "জমা দিন",
+    student: "ছাত্র/ছাত্রী", parent: "অভিভাবক", teacher: "শিক্ষক",
+    admin: "বিদ্যালয় প্রশাসক", government: "সরকারি কর্মকর্তা",
+    cognitiveMap: "জ্ঞান মানচিত্র", skillGaps: "দক্ষতার ফাঁক",
+    growthPlan: "বিকাশ পরিকল্পনা", careerPath: "ক্যারিয়ার পথ",
+    gpaPredictor: "GPA পূর্বাভাস", syllabusProgress: "পাঠ্যক্রমের অগ্রগতি",
+    riskHeatmap: "ঝুঁকির হিটম্যাপ", flaggedStudents: "চিহ্নিত শিক্ষার্থী",
+    cognitiveSkills: "জ্ঞান দক্ষতা", lessonPlans: "পাঠ পরিকল্পনা",
+    training: "প্রশিক্ষণ", createAssessment: "মূল্যায়ন তৈরি",
+    gradeSubmissions: "জমা মূল্যায়ন করুন", results: "ফলাফল",
+    analytics: "বিশ্লেষণ", districtAnalytics: "জেলা বিশ্লেষণ",
+    dropoutRisk: "ঝরে পড়ার ঝুঁকি", talentEngine: "প্রতিভা ইঞ্জিন",
+    policySimulation: "নীতি সিমুলেশন", aiReports: "AI প্রতিবেদন",
+    transferRec: "বদলি সুপারিশ", revenue: "রাজস্ব ও তহবিল",
+    markAllRead: "সব পড়া হয়েছে", clearAll: "মুছুন",
+    offline: "আপনি অফলাইনে আছেন — সংরক্ষিত তথ্য দেখানো হচ্ছে",
+    noData: "কোনো তথ্য নেই", aiInsight: "AI অন্তর্দৃষ্টি",
+    highRisk: "উচ্চ ঝুঁকি", medRisk: "মধ্যম ঝুঁকি", lowRisk: "কম ঝুঁকি",
+    present: "উপস্থিত", absent: "অনুপস্থিত", late: "দেরি",
+    pass: "পাস", fail: "ফেল", grade: "গ্রেড",
+    subject: "বিষয়", score: "স্কোর", rank: "র‍্যাংক",
+    classAvg: "শ্রেণীর গড়", highest: "সর্বোচ্চ", lowest: "সর্বনিম্ন",
+    passRate: "পাসের হার", total: "মোট", enrolled: "নথিভুক্ত",
+    schoolOverview: "বিদ্যালয়ের সংক্ষিপ্ত বিবরণ", digitalAttendance: "ডিজিটাল উপস্থিতি",
+    studentRecords: "শিক্ষার্থীর রেকর্ড", teacherRegistry: "শিক্ষকের তালিকা",
+    examResults: "পরীক্ষা ও ফলাফল", homeworkTracker: "বাড়ির কাজ ট্র্যাকার",
+    automatedReports: "স্বয়ংক্রিয় রিপোর্ট", fees: "রাজস্ব ও ফি",
+    askTeacher: "শিক্ষককে প্রশ্ন করুন", studyGroups: "স্টাডি গ্রুপ",
+    smsSent: "SMS সফলভাবে পাঠানো হয়েছে", sendSMS: "SMS পাঠান",
+    generate: "তৈরি করুন", download: "PDF ডাউনলোড",
+    approved: "অনুমোদিত", rejected: "প্রত্যাখ্যাত", pending: "মুলতুবি",
+  }
+};
+
+// ============================================================
+// MOCK DATA
+// ============================================================
+const STUDENTS = [
+  { id: "S001", name: "আরিফ হোসেন", nameEn: "Arif Hossain", class: 8, section: "A", roll: 7, score: 78.5, risk: "low", rank: 8, attendance: 92, gpa: 4.2 },
+  { id: "S002", name: "নুসরাত জাহান", nameEn: "Nusrat Jahan", class: 8, section: "A", roll: 12, score: 85.2, risk: "low", rank: 3, attendance: 96, gpa: 4.6 },
+  { id: "S003", name: "সুমাইয়া আক্তার", nameEn: "Sumaiya Akter", class: 8, section: "B", roll: 5, score: 52.1, risk: "high", rank: 31, attendance: 71, gpa: 2.8 },
+  { id: "S004", name: "রহিম উদ্দিন", nameEn: "Rahim Uddin", class: 8, section: "B", roll: 18, score: 63.4, risk: "medium", rank: 22, attendance: 84, gpa: 3.3 },
+  { id: "S005", name: "তাসনিম ইসলাম", nameEn: "Tasnim Islam", class: 8, section: "A", roll: 3, score: 91.0, risk: "low", rank: 1, attendance: 98, gpa: 5.0 },
+  { id: "S006", name: "মারিয়াম বেগম", nameEn: "Mariam Begum", class: 8, section: "C", roll: 9, score: 44.3, risk: "high", rank: 38, attendance: 65, gpa: 2.0 },
+  { id: "S007", name: "সাইফুল ইসলাম", nameEn: "Saiful Islam", class: 8, section: "A", roll: 21, score: 71.8, risk: "low", rank: 14, attendance: 89, gpa: 3.9 },
+  { id: "S008", name: "ফাতেমা খানম", nameEn: "Fatema Khanam", class: 8, section: "B", roll: 6, score: 58.9, risk: "medium", rank: 26, attendance: 78, gpa: 3.0 },
+];
+
+const TEACHERS = [
+  { id: "T001", name: "ফাতেমা বেগম", nameEn: "Fatema Begum", subject: "গণিত ও বিজ্ঞান", subjectEn: "Math & Science", school: "খুলনা সরকারি উচ্চ বিদ্যালয়", district: "খুলনা", experience: 8, score: 82, transferScore: 78, assessmentsCreated: 12, avgClassScore: 74.2, passRate: 88 },
+  { id: "T002", name: "করিম শেখ", nameEn: "Karim Sheikh", subject: "বাংলা ও ইংরেজি", subjectEn: "Bangla & English", school: "রাজশাহী মডেল স্কুল", district: "রাজশাহী", experience: 12, score: 76, transferScore: 65, assessmentsCreated: 8, avgClassScore: 68.5, passRate: 79 },
+  { id: "T003", name: "রেহানা পারভীন", nameEn: "Rehana Parvin", subject: "সমাজ ও ধর্ম", subjectEn: "Social & Religion", school: "সিলেট সরকারি বালিকা বিদ্যালয়", district: "সিলেট", experience: 6, score: 71, transferScore: 82, assessmentsCreated: 6, avgClassScore: 65.1, passRate: 72 },
+];
+
+const PERFORMANCE_DATA = [
+  { month: "জানু", math: 72, bangla: 68, english: 65, science: 70 },
+  { month: "ফেব্রু", math: 74, bangla: 71, english: 67, science: 72 },
+  { month: "মার্চ", math: 76, bangla: 73, english: 69, science: 68 },
+  { month: "এপ্রিল", math: 79, bangla: 75, english: 70, science: 74 },
+  { month: "মে", math: 81, bangla: 76, english: 72, science: 71 },
+  { month: "জুন", math: 82, bangla: 76, english: 71, science: 69 },
+];
+
+const COGNITIVE_DATA = [
+  { skill: "বিশ্লেষণ", current: 78, previous: 72 },
+  { skill: "সমস্যা সমাধান", current: 82, previous: 75 },
+  { skill: "স্মৃতিশক্তি", current: 71, previous: 68 },
+  { skill: "সৃজনশীলতা", current: 65, previous: 60 },
+  { skill: "যোগাযোগ", current: 74, previous: 71 },
+  { skill: "সমালোচনা", current: 69, previous: 65 },
+];
+
+const DISTRICTS = [
+  { name: "ঢাকা", div: "ঢাকা", schools: 4821, students: 1820000, score: 72.4, dropout: 7.2 },
+  { name: "চট্টগ্রাম", div: "চট্টগ্রাম", schools: 3214, students: 1240000, score: 69.8, dropout: 8.9 },
+  { name: "খুলনা", div: "খুলনা", schools: 2108, students: 890000, score: 67.2, dropout: 10.1 },
+  { name: "রাজশাহী", div: "রাজশাহী", schools: 1987, students: 810000, score: 65.4, dropout: 11.3 },
+  { name: "সিলেট", div: "সিলেট", schools: 1654, students: 720000, score: 63.1, dropout: 14.2 },
+  { name: "বরিশাল", div: "বরিশাল", schools: 1432, students: 580000, score: 61.8, dropout: 15.7 },
+  { name: "রংপুর", div: "রংপুর", schools: 1876, students: 760000, score: 64.3, dropout: 12.8 },
+  { name: "ময়মনসিংহ", div: "ময়মনসিংহ", schools: 1543, students: 640000, score: 62.9, dropout: 13.4 },
+];
+
+const NATIONAL_TREND = [
+  { year: "২০১৯", score: 61.2 }, { year: "২০২০", score: 59.8 },
+  { year: "২০২১", score: 62.4 }, { year: "২০২২", score: 64.1 },
+  { year: "২০২৩", score: 66.8 }, { year: "২০২৪", score: 68.4 },
+];
+
+const SCHOOL_TYPES = [
+  { name: "সরকারি", value: 38, color: C.forest },
+  { name: "বেসরকারি", value: 32, color: C.gold },
+  { name: "মাদ্রাসা", value: 22, color: C.emerald },
+  { name: "এনজিও", value: 8, color: C.info },
+];
+
+const SUBJECTS = ["গণিত","বাংলা","ইংরেজি","বিজ্ঞান","সমাজ বিজ্ঞান","আইসিটি","ধর্ম","কৃষি"];
+const SUBJECT_COLORS = { "গণিত": "#005C4B","বাংলা":"#E8A020","ইংরেজি":"#2E86AB","বিজ্ঞান":"#A23B72","সমাজ বিজ্ঞান":"#F18F01","আইসিটি":"#1A5276","ধর্ম":"#8B5E04","কৃষি":"#3D7A1A" };
+
+const LIBRARY_ITEMS = [
+  { id: 1, title: "ত্রিভুজের ক্ষেত্রফল ও পরিধি", subject: "গণিত", class: 8, type: "ভিডিও", duration: "18 মিনিট", downloads: 1420 },
+  { id: 2, title: "বাংলা ব্যাকরণ: সন্ধি বিচ্ছেদ", subject: "বাংলা", class: 8, type: "পাঠ্যবই", duration: "42 পৃষ্ঠা", downloads: 2103 },
+  { id: 3, title: "Newton's Laws of Motion", subject: "বিজ্ঞান", class: 8, type: "অ্যানিমেশন", duration: "22 মিনিট", downloads: 987 },
+  { id: 4, title: "English Grammar: Tenses", subject: "ইংরেজি", class: 8, type: "কুইজ", duration: "30 প্রশ্ন", downloads: 1876 },
+  { id: 5, title: "বাংলাদেশের ইতিহাস ও ভূগোল", subject: "সমাজ বিজ্ঞান", class: 8, type: "পাঠ্যবই", duration: "68 পৃষ্ঠা", downloads: 3241 },
+  { id: 6, title: "ICT: Internet and Web Basics", subject: "আইসিটি", class: 8, type: "ভিডিও", duration: "25 মিনিট", downloads: 1654 },
+];
+
+const ASSESSMENTS_MOCK = [
+  { id: "A001", title: "গণিত মাসিক পরীক্ষা - এপ্রিল", subject: "গণিত", type: "মাসিক পরীক্ষা", date: "১৫ এপ্রিল ২০২৪", totalMarks: 50, assigned: 42, submitted: 38, status: "graded", avgScore: 36.4, passRate: 86 },
+  { id: "A002", title: "বিজ্ঞান কুইজ - চ্যাপ্টার ৪", subject: "বিজ্ঞান", type: "কুইজ", date: "২২ এপ্রিল ২০২৪", totalMarks: 20, assigned: 42, submitted: 40, status: "grading", avgScore: null, passRate: null },
+  { id: "A003", title: "গণিত শ্রেণী পরীক্ষা", subject: "গণিত", type: "শ্রেণী পরীক্ষা", date: "৫ মে ২০২৪", totalMarks: 30, assigned: 42, submitted: 0, status: "open", avgScore: null, passRate: null },
+];
+
+const QA_FEED = [
+  { id: 1, student: "আরিফ হোসেন", subject: "গণিত", question: "পিথাগোরাসের উপপাদ্য কীভাবে প্রমাণ করতে হয়?", time: "২ ঘণ্টা আগে", answers: [{ teacher: "ফাতেমা বেগম", text: "পিথাগোরাসের উপপাদ্য প্রমাণের সহজ উপায় হলো সমকোণী ত্রিভুজ আঁকা এবং বর্গক্ষেত্রের সাহায্যে দেখানো যে a²+b²=c²।", votes: 12 }] },
+  { id: 2, student: "নুসরাত জাহান", subject: "ইংরেজি", question: "Present Perfect Tense এবং Simple Past Tense-এর পার্থক্য কী?", time: "৫ ঘণ্টা আগে", answers: [{ teacher: "করিম শেখ", text: "Present Perfect ব্যবহার হয় যখন কাজটি অতীতে শুরু হয়ে এখনও প্রাসঙ্গিক। যেমন: 'I have eaten' মানে এখনও পেট ভরা।", votes: 8 }] },
+];
+
+const NOTICES = [
+  { id: 1, title: "SSC পরীক্ষার সময়সূচি প্রকাশিত", body: "২০২৪ সালের SSC পরীক্ষা আগামী ১৫ ফেব্রুয়ারি থেকে শুরু হবে।", priority: "high", author: "সরকারি কর্মকর্তা", scope: "জাতীয়", date: "১০ জানু ২০২৪" },
+  { id: 2, title: "বার্ষিক ক্রীড়া প্রতিযোগিতা", body: "আগামী সপ্তাহে বিদ্যালয় মাঠে বার্ষিক ক্রীড়া প্রতিযোগিতা অনুষ্ঠিত হবে।", priority: "normal", author: "ফাতেমা বেগম", scope: "বিদ্যালয়", date: "৮ জানু ২০২৪" },
+  { id: 3, title: "অভিভাবক-শিক্ষক সভা", body: "আগামী শুক্রবার সকাল ১০টায় অভিভাবক-শিক্ষক সভা অনুষ্ঠিত হবে।", priority: "important", author: "বিদ্যালয় প্রশাসক", scope: "বিদ্যালয়", date: "৫ জানু ২০২৪" },
+];
+
+// ============================================================
+// LOGO COMPONENT
+// ============================================================
+const Logo = ({ size = 36, variant = "compact", theme = "dark", showTagline = false }) => {
+  const textColor = theme === "dark" ? "#FFFFFF" : "#005C4B";
+  const taglineColor = theme === "dark" ? "rgba(255,255,255,0.5)" : "rgba(0,92,75,0.55)";
+  const Mark = () => (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <defs>
+        <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#004D3A"/><stop offset="100%" stopColor="#3DBE7A"/>
+        </linearGradient>
+        <linearGradient id="ag" x1="0.5" y1="1" x2="0.5" y2="0">
+          <stop offset="0%" stopColor="#1A7A4A"/><stop offset="100%" stopColor="#4CAF7D"/>
+        </linearGradient>
+        <linearGradient id="sg" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#F5C518"/><stop offset="100%" stopColor="#E8870A"/>
+        </linearGradient>
+      </defs>
+      <path d="M50 14 A36 36 0 1 1 20 66 Q18 78 28 80 Q38 82 50 76" stroke="url(#rg)" strokeWidth="7" strokeLinecap="round" fill="none"/>
+      <path d="M50 14 A36 36 0 0 1 80 66 Q82 78 72 80 Q62 82 50 76" stroke="url(#rg)" strokeWidth="7" strokeLinecap="round" fill="none"/>
+      <path d="M50 24 A26 26 0 1 1 28 63 Q26 72 34 73 Q42 74 50 70" stroke="url(#rg)" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.65"/>
+      <path d="M50 24 A26 26 0 0 1 72 63 Q74 72 66 73 Q58 74 50 70" stroke="url(#rg)" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.65"/>
+      <path d="M50 30 L39 54 L45 54 L45 72 L55 72 L55 54 L61 54 Z" fill="url(#ag)"/>
+      <path d="M50 4 L53.5 10 L60 12 L53.5 14 L50 20 L46.5 14 L40 12 L46.5 10 Z" fill="url(#sg)"/>
+    </svg>
+  );
+  if (variant === "mark") return <Mark />;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+      <Mark />
+      <div style={{ display:"flex", flexDirection:"column", gap:"1px" }}>
+        <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize: size*0.7+"px", fontWeight:700, color:textColor, lineHeight:1 }}>ভবিষ্যৎ</span>
+        {variant === "full" && <span style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize: size*0.22+"px", fontWeight:600, letterSpacing:"0.14em", textTransform:"uppercase", color:"#E8A020" }}>BHOBISHYOT</span>}
+        {showTagline && <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize: size*0.18+"px", color:taglineColor, marginTop:"2px" }}>আজকের মূল্যায়ন আগামীর সফলতা</span>}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// UI PRIMITIVES
+// ============================================================
+const Badge = ({ children, color = "green", size = "sm" }) => {
+  const colors = {
+    green: { bg: C.successBg, text: C.success },
+    amber: { bg: C.warningBg, text: C.warning },
+    red:   { bg: C.dangerBg,  text: C.danger  },
+    blue:  { bg: C.infoBg,    text: C.info    },
+    gold:  { bg: "#FEF3DC",   text: "#8B5E04" },
+    grey:  { bg: "#F0F0F0",   text: "#555"    },
+    navy:  { bg: C.navy,      text: "#fff"    },
+  };
+  const c = colors[color] || colors.green;
+  return (
+    <span style={{ background:c.bg, color:c.text, padding: size==="sm"?"2px 8px":"3px 10px", borderRadius:9999, fontSize: size==="sm"?"11px":"12px", fontWeight:600, fontFamily:"'Plus Jakarta Sans',sans-serif", whiteSpace:"nowrap" }}>
+      {children}
+    </span>
+  );
+};
+
+const AIBadge = () => (
+  <span style={{ background:"#FEF3DC", color:"#8B5E04", padding:"1px 6px", borderRadius:9999, fontSize:"10px", fontWeight:700, letterSpacing:"0.05em" }}>✦ AI</span>
+);
+
+const KPICard = ({ label, value, sub, color = C.forest, icon = "📊", trend = null }) => (
+  <div style={{ background:C.paper, border:`1px solid ${C.muted}`, borderRadius:12, padding:"18px 20px", boxShadow:"0 2px 8px rgba(0,0,0,0.07)", display:"flex", flexDirection:"column", gap:6, minWidth:0 }}>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+      <span style={{ fontSize:24 }}>{icon}</span>
+      {trend && <span style={{ fontSize:11, color: trend > 0 ? C.success : C.danger, fontWeight:600 }}>{trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%</span>}
+    </div>
+    <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:28, fontWeight:700, color }}>
+      {value}
+    </div>
+    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:"#666", fontWeight:500 }}>{label}</div>
+    {sub && <div style={{ fontSize:11, color:"#999" }}>{sub}</div>}
+  </div>
+);
+
+const Card = ({ children, style = {} }) => (
+  <div style={{ background:C.paper, border:`1px solid ${C.muted}`, borderRadius:12, padding:"20px", boxShadow:"0 2px 8px rgba(0,0,0,0.07)", ...style }}>
+    {children}
+  </div>
+);
+
+const SectionTitle = ({ children, badge = null }) => (
+  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+    <h3 style={{ fontFamily:"'Sora',sans-serif", fontSize:15, fontWeight:700, color:C.dark, margin:0 }}>{children}</h3>
+    {badge}
+  </div>
+);
+
+const Btn = ({ children, onClick, variant = "primary", size = "md", style = {} }) => {
+  const variants = {
+    primary:  { background:C.forest, color:"#fff", border:"none" },
+    gold:     { background:C.gold,   color:C.dark, border:"none" },
+    ghost:    { background:"transparent", color:C.forest, border:`1.5px solid ${C.forest}` },
+    danger:   { background:C.danger, color:"#fff", border:"none" },
+    muted:    { background:C.muted,  color:"#555", border:"none" },
+  };
+  const sizes = { sm:{ padding:"6px 14px", fontSize:12 }, md:{ padding:"9px 20px", fontSize:13 }, lg:{ padding:"12px 28px", fontSize:14 } };
+  return (
+    <button onClick={onClick} style={{ ...variants[variant], ...sizes[size], borderRadius:8, fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:600, cursor:"pointer", transition:"all 0.15s", ...style }}>
+      {children}
+    </button>
+  );
+};
+
+const TabBar = ({ tabs, active, onSelect, small = false }) => (
+  <div style={{ display:"flex", gap:4, borderBottom:`2px solid ${C.muted}`, marginBottom:20, overflowX:"auto", flexShrink:0 }}>
+    {tabs.map(t => (
+      <button key={t.id} onClick={() => onSelect(t.id)}
+        style={{ padding: small?"6px 14px":"8px 18px", fontSize: small?12:13, fontFamily:"'Hind Siliguri',sans-serif", fontWeight:600, color: active===t.id ? C.forest : "#777", background:"none", border:"none", borderBottom: active===t.id ? `3px solid ${C.gold}` : "3px solid transparent", cursor:"pointer", whiteSpace:"nowrap", transition:"all 0.15s", marginBottom:-2 }}>
+        {t.label}
+      </button>
+    ))}
+  </div>
+);
+
+const RiskBadge = ({ level, lang }) => {
+  const map = { high:{ color:"red", labelBn:"উচ্চ ঝুঁকি", labelEn:"High Risk" }, medium:{ color:"amber", labelBn:"মধ্যম ঝুঁকি", labelEn:"Med Risk" }, low:{ color:"green", labelBn:"কম ঝুঁকি", labelEn:"Low Risk" } };
+  const r = map[level] || map.low;
+  return <Badge color={r.color}>{lang==="bn" ? r.labelBn : r.labelEn}</Badge>;
+};
+
+// ============================================================
+// CHARTS
+// ============================================================
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background:"#fff", border:`1px solid ${C.muted}`, borderRadius:8, padding:"10px 14px", boxShadow:"0 4px 16px rgba(0,0,0,0.1)", fontSize:12, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      <p style={{ fontWeight:700, marginBottom:4, color:C.dark }}>{label}</p>
+      {payload.map((p,i) => <p key={i} style={{ color:p.color, margin:"2px 0" }}>{p.name}: <strong>{p.value}</strong></p>)}
+    </div>
+  );
+};
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+const SIDEBAR_ITEMS = {
+  student: [
+    { id:"overview", icon:"🏠", labelBn:"সংক্ষিপ্ত বিবরণ", labelEn:"Overview" },
+    { id:"library", icon:"📚", labelBn:"ডিজিটাল লাইব্রেরি", labelEn:"Library" },
+    { id:"assessments", icon:"📝", labelBn:"মূল্যায়ন", labelEn:"Assessments" },
+    { id:"cognitive", icon:"🧠", labelBn:"জ্ঞান মানচিত্র", labelEn:"Cognitive Map" },
+    { id:"performance", icon:"📈", labelBn:"পারফরম্যান্স", labelEn:"Performance" },
+    { id:"growth", icon:"🎯", labelBn:"বিকাশ পরিকল্পনা", labelEn:"Growth Plan" },
+    { id:"career", icon:"🚀", labelBn:"ক্যারিয়ার পথ", labelEn:"Career Path" },
+    { id:"gpa", icon:"🎓", labelBn:"GPA পূর্বাভাস", labelEn:"GPA Predictor" },
+    { id:"askteacher", icon:"💬", labelBn:"শিক্ষককে প্রশ্ন", labelEn:"Ask Teacher" },
+    { id:"notices", icon:"📢", labelBn:"নোটিশ বোর্ড", labelEn:"Notices" },
+    { id:"messages", icon:"✉️", labelBn:"বার্তা", labelEn:"Messages" },
+  ],
+  parent: [
+    { id:"overview", icon:"🏠", labelBn:"সংক্ষিপ্ত বিবরণ", labelEn:"Overview" },
+    { id:"performance", icon:"📈", labelBn:"পারফরম্যান্স", labelEn:"Performance" },
+    { id:"attendance", icon:"📅", labelBn:"উপস্থিতি", labelEn:"Attendance" },
+    { id:"assessments", icon:"📝", labelBn:"মূল্যায়ন ফলাফল", labelEn:"Assessment Results" },
+    { id:"cognitive", icon:"🧠", labelBn:"জ্ঞান প্রোফাইল", labelEn:"Cognitive Profile" },
+    { id:"notices", icon:"📢", labelBn:"নোটিশ বোর্ড", labelEn:"Notices" },
+    { id:"messages", icon:"✉️", labelBn:"বার্তা", labelEn:"Messages" },
+  ],
+  teacher: [
+    { id:"overview", icon:"🏠", labelBn:"শ্রেণীর সংক্ষিপ্ত বিবরণ", labelEn:"Class Overview" },
+    { id:"heatmap", icon:"🔥", labelBn:"ঝুঁকির হিটম্যাপ", labelEn:"Risk Heatmap" },
+    { id:"flagged", icon:"⚠️", labelBn:"চিহ্নিত শিক্ষার্থী", labelEn:"Flagged Students" },
+    { id:"assessments", icon:"📝", labelBn:"মূল্যায়ন", labelEn:"Assessments" },
+    { id:"studentprofiles", icon:"👤", labelBn:"শিক্ষার্থীর প্রোফাইল", labelEn:"Student Profiles" },
+    { id:"syllabus", icon:"📋", labelBn:"পাঠ্যক্রম ট্র্যাকার", labelEn:"Syllabus Tracker" },
+    { id:"library", icon:"📚", labelBn:"ডিজিটাল লাইব্রেরি", labelEn:"Library" },
+    { id:"training", icon:"🏫", labelBn:"প্রশিক্ষণ", labelEn:"Training" },
+    { id:"profile", icon:"👩‍🏫", labelBn:"আমার প্রোফাইল", labelEn:"My Profile" },
+    { id:"notices", icon:"📢", labelBn:"নোটিশ বোর্ড", labelEn:"Notices" },
+    { id:"messages", icon:"✉️", labelBn:"বার্তা", labelEn:"Messages" },
+  ],
+  admin: [
+    { id:"overview", icon:"🏫", labelBn:"বিদ্যালয়ের বিবরণ", labelEn:"School Overview" },
+    { id:"attendance", icon:"📅", labelBn:"ডিজিটাল উপস্থিতি", labelEn:"Attendance" },
+    { id:"students", icon:"🎓", labelBn:"শিক্ষার্থীর রেকর্ড", labelEn:"Student Records" },
+    { id:"teachers", icon:"👩‍🏫", labelBn:"শিক্ষকের তালিকা", labelEn:"Teacher Registry" },
+    { id:"exams", icon:"📊", labelBn:"পরীক্ষা ও ফলাফল", labelEn:"Exam & Results" },
+    { id:"reports", icon:"📄", labelBn:"স্বয়ংক্রিয় রিপোর্ট", labelEn:"Reports" },
+    { id:"fees", icon:"💰", labelBn:"রাজস্ব ও ফি", labelEn:"Revenue & Fees" },
+    { id:"notices", icon:"📢", labelBn:"নোটিশ বোর্ড", labelEn:"Notices" },
+    { id:"messages", icon:"✉️", labelBn:"বার্তা", labelEn:"Messages" },
+  ],
+  government: [
+    { id:"national", icon:"🏛️", labelBn:"জাতীয় সংক্ষিপ্ত বিবরণ", labelEn:"National Overview" },
+    { id:"district", icon:"🗺️", labelBn:"জেলা বিশ্লেষণ", labelEn:"District Analytics" },
+    { id:"dropout", icon:"⚠️", labelBn:"ঝরে পড়ার ঝুঁকি", labelEn:"Dropout Risk" },
+    { id:"teacherregistry", icon:"👩‍🏫", labelBn:"শিক্ষকের তালিকা", labelEn:"Teacher Registry" },
+    { id:"assessmentintel", icon:"📊", labelBn:"মূল্যায়ন বুদ্ধিমত্তা", labelEn:"Assessment Intel" },
+    { id:"talent", icon:"⭐", labelBn:"প্রতিভা ইঞ্জিন", labelEn:"Talent Engine" },
+    { id:"policy", icon:"⚖️", labelBn:"নীতি সিমুলেশন", labelEn:"Policy Simulation" },
+    { id:"aireports", icon:"🤖", labelBn:"AI প্রতিবেদন", labelEn:"AI Reports" },
+    { id:"transfers", icon:"🔄", labelBn:"বদলি সুপারিশ", labelEn:"Transfer Recs" },
+    { id:"messages", icon:"✉️", labelBn:"বার্তার ইনবক্স", labelEn:"Messages Inbox" },
+    { id:"notices", icon:"📢", labelBn:"নোটিশ তৈরি", labelEn:"Create Notices" },
+    { id:"revenue", icon:"💰", labelBn:"রাজস্ব ও তহবিল", labelEn:"Revenue & Funding" },
+  ],
+};
+
+const Sidebar = ({ role, activeTab, onTabChange, lang, collapsed, onToggle, onLogout }) => {
+  const items = SIDEBAR_ITEMS[role] || [];
+  return (
+    <div style={{ width: collapsed ? 72 : 260, minWidth: collapsed ? 72 : 260, background:`linear-gradient(180deg, ${C.dark} 0%, ${C.navy} 100%)`, height:"100vh", display:"flex", flexDirection:"column", transition:"width 0.3s ease", position:"relative", zIndex:10, overflowY:"auto", overflowX:"hidden" }}>
+      {/* Logo */}
+      <div style={{ padding:"20px 16px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent: collapsed?"center":"space-between" }}>
+        {collapsed ? <Logo size={32} variant="mark" /> : <Logo size={32} variant="compact" theme="dark" />}
+        {!collapsed && (
+          <button onClick={onToggle} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:16, padding:4 }}>◀</button>
+        )}
+      </div>
+      {collapsed && (
+        <div style={{ display:"flex", justifyContent:"center", padding:"8px 0" }}>
+          <button onClick={onToggle} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:16, padding:4 }}>▶</button>
+        </div>
+      )}
+      {/* Tagline */}
+      {!collapsed && (
+        <div style={{ padding:"8px 16px 12px", fontFamily:"'Hind Siliguri',sans-serif", fontSize:10, color:"rgba(232,160,32,0.5)", letterSpacing:"0.03em" }}>
+          আজকের মূল্যায়ন আগামীর সফলতা
+        </div>
+      )}
+      {/* Nav items */}
+      <nav style={{ flex:1, padding:"8px 8px" }}>
+        {items.map(item => (
+          <button key={item.id} onClick={() => onTabChange(item.id)}
+            style={{ width:"100%", display:"flex", alignItems:"center", gap: collapsed?0:10, padding: collapsed?"12px 0":"10px 12px", justifyContent: collapsed?"center":"flex-start", background: activeTab===item.id ? "rgba(0,92,75,0.25)" : "none", border: "none", borderLeft: activeTab===item.id ? `3px solid ${C.gold}` : "3px solid transparent", borderRadius: activeTab===item.id ? "0 8px 8px 0" : "0", color: activeTab===item.id ? "#fff" : "rgba(255,255,255,0.6)", cursor:"pointer", fontSize:13, fontFamily:"'Hind Siliguri',sans-serif", fontWeight: activeTab===item.id ? 600 : 400, transition:"all 0.15s", textAlign:"left", marginBottom:2 }}>
+            <span style={{ fontSize:16, flexShrink:0 }}>{item.icon}</span>
+            {!collapsed && <span>{lang==="bn" ? item.labelBn : item.labelEn}</span>}
+          </button>
+        ))}
+      </nav>
+      {/* Bottom */}
+      {!collapsed && (
+        <div style={{ padding:"16px", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+          <button onClick={onLogout} style={{ width:"100%", background:"rgba(192,57,43,0.15)", border:"1px solid rgba(192,57,43,0.3)", color:"#e87c6b", borderRadius:8, padding:"8px", cursor:"pointer", fontSize:12, fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:600 }}>
+            🚪 {lang==="bn" ? "লগআউট" : "Logout"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// TOP BAR
+// ============================================================
+const TopBar = ({ title, lang, setLang, notifications, onNotifClick, showNotifs, role }) => {
+  const unread = notifications.filter(n => !n.read).length;
+  const roleLabels = { student:"ছাত্র/ছাত্রী", parent:"অভিভাবক", teacher:"শিক্ষক", admin:"বিদ্যালয় প্রশাসক", government:"সরকারি কর্মকর্তা" };
+  return (
+    <div style={{ height:64, background:C.paper, borderBottom:`1px solid ${C.muted}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0, position:"sticky", top:0, zIndex:9 }}>
+      <div style={{ fontFamily:"'Sora',sans-serif", fontSize:16, fontWeight:700, color:C.dark }}>{title}</div>
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        {/* Lang toggle */}
+        <div style={{ display:"flex", background:C.muted, borderRadius:9999, padding:3, gap:2 }}>
+          {["en","bn"].map(l => (
+            <button key={l} onClick={() => setLang(l)}
+              style={{ padding:"4px 12px", borderRadius:9999, border:"none", background: lang===l ? C.forest : "transparent", color: lang===l ? "#fff" : "#666", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif", transition:"all 0.2s" }}>
+              {l==="en" ? "EN" : "বাং"}
+            </button>
+          ))}
+        </div>
+        {/* Notifications */}
+        <div style={{ position:"relative" }}>
+          <button onClick={onNotifClick} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, position:"relative", padding:4 }}>
+            🔔
+            {unread > 0 && <span style={{ position:"absolute", top:-2, right:-2, background:C.danger, color:"#fff", borderRadius:9999, fontSize:9, fontWeight:700, padding:"1px 4px", minWidth:14, textAlign:"center" }}>{unread}</span>}
+          </button>
+          {showNotifs && (
+            <div style={{ position:"absolute", right:0, top:40, width:320, background:C.paper, border:`1px solid ${C.muted}`, borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:100, overflow:"hidden" }}>
+              <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.muted}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontWeight:700, fontSize:14, fontFamily:"'Sora',sans-serif" }}>{lang==="bn" ? "বিজ্ঞপ্তি" : "Notifications"}</span>
+                {unread > 0 && <Badge color="red">{unread}</Badge>}
+              </div>
+              <div style={{ maxHeight:300, overflowY:"auto" }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding:20, textAlign:"center", color:"#999", fontSize:13 }}>কোনো বিজ্ঞপ্তি নেই</div>
+                ) : notifications.map(n => (
+                  <div key={n.id} style={{ padding:"12px 16px", borderBottom:`1px solid ${C.muted}`, background: n.read ? "transparent" : C.infoBg, display:"flex", gap:10 }}>
+                    <span style={{ fontSize:18 }}>{n.icon}</span>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, color:C.dark, fontFamily:"'Hind Siliguri',sans-serif" }}>{n.title}</div>
+                      <div style={{ fontSize:11, color:"#999", marginTop:2 }}>{n.time}</div>
+                    </div>
+                    {!n.read && <div style={{ width:8, height:8, borderRadius:"50%", background:C.forest, marginLeft:"auto", marginTop:4, flexShrink:0 }} />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Role chip */}
+        <Badge color="green">{roleLabels[role]}</Badge>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// SHARED TAB CONTENTS
+// ============================================================
+const NoticesTab = ({ lang }) => (
+  <div>
+    <SectionTitle>{lang==="bn" ? "নোটিশ বোর্ড" : "Notice Board"}</SectionTitle>
+    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      {NOTICES.map(n => (
+        <Card key={n.id} style={{ borderLeft:`4px solid ${n.priority==="high" ? C.danger : n.priority==="important" ? C.gold : C.forest}`, padding:"16px 20px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, marginBottom:6 }}>
+            <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700, color:C.dark, margin:0 }}>{n.title}</h4>
+            <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+              <Badge color={n.priority==="high"?"red":n.priority==="important"?"gold":"green"}>{n.priority==="high"?"জরুরি":n.priority==="important"?"গুরুত্বপূর্ণ":"সাধারণ"}</Badge>
+              <Badge color="grey">{n.scope}</Badge>
+            </div>
+          </div>
+          <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:"#555", margin:"0 0 8px" }}>{n.body}</p>
+          <div style={{ fontSize:11, color:"#999", display:"flex", gap:12 }}>
+            <span>👤 {n.author}</span><span>📅 {n.date}</span>
+          </div>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const MessagesTab = ({ lang }) => {
+  const [msg, setMsg] = useState({ category:"সমস্যা", subject:"", body:"" });
+  const [sent, setSent] = useState(false);
+  return (
+    <div>
+      <SectionTitle>{lang==="bn" ? "জেলা প্রশাসনকে বার্তা" : "Message to District"}</SectionTitle>
+      {sent ? (
+        <Card style={{ textAlign:"center", padding:40 }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+          <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:16, fontWeight:600, color:C.success }}>বার্তা সফলভাবে পাঠানো হয়েছে!</div>
+          <div style={{ fontSize:13, color:"#999", marginTop:4 }}>Message sent successfully</div>
+          <Btn onClick={() => setSent(false)} style={{ marginTop:16 }}>{lang==="bn" ? "নতুন বার্তা" : "New Message"}</Btn>
+        </Card>
+      ) : (
+        <Card>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div>
+              <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, display:"block", marginBottom:6 }}>{lang==="bn" ? "বিভাগ" : "Category"}</label>
+              <select value={msg.category} onChange={e => setMsg({...msg, category:e.target.value})} style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:14, fontFamily:"'Hind Siliguri',sans-serif" }}>
+                <option>সমস্যা</option><option>প্রশ্ন</option><option>মতামত</option><option>জরুরি</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, display:"block", marginBottom:6 }}>{lang==="bn" ? "বিষয়" : "Subject"}</label>
+              <input value={msg.subject} onChange={e => setMsg({...msg, subject:e.target.value})} placeholder={lang==="bn" ? "বার্তার বিষয়..." : "Message subject..."} style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:14, fontFamily:"'Hind Siliguri',sans-serif", boxSizing:"border-box" }} />
+            </div>
+            <div>
+              <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, display:"block", marginBottom:6 }}>{lang==="bn" ? "বার্তা" : "Message"}</label>
+              <textarea value={msg.body} onChange={e => setMsg({...msg, body:e.target.value})} rows={5} placeholder={lang==="bn" ? "আপনার বার্তা লিখুন..." : "Write your message..."} style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:14, fontFamily:"'Hind Siliguri',sans-serif", resize:"vertical", boxSizing:"border-box" }} />
+            </div>
+            <Btn onClick={() => setSent(true)}>{lang==="bn" ? "পাঠান" : "Send"}</Btn>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// STUDENT DASHBOARD TABS
+// ============================================================
+const StudentOverview = ({ lang }) => (
+  <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:16 }}>
+      <KPICard label={lang==="bn"?"সামগ্রিক স্কোর":"Overall Score"} value="78.5" sub="/100" icon="🎯" color={C.forest} trend={4.2} />
+      <KPICard label={lang==="bn"?"AI ঝুঁকি স্তর":"AI Risk Level"} value={lang==="bn"?"কম":"Low"} icon="🛡️" color={C.success} />
+      <KPICard label={lang==="bn"?"শ্রেণী র‍্যাংক":"Class Rank"} value="#8" sub={lang==="bn"?"৪২ জনের মধ্যে":"of 42"} icon="🏆" color={C.gold} />
+      <KPICard label={lang==="bn"?"উপস্থিতি":"Attendance"} value="92%" icon="📅" color={C.emerald} trend={2.1} />
+    </div>
+    <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:20 }}>
+      <Card>
+        <SectionTitle>{lang==="bn"?"জ্ঞান দক্ষতার মানচিত্র":"Cognitive Skill Map"}</SectionTitle>
+        <ResponsiveContainer width="100%" height={260}>
+          <RadarChart data={COGNITIVE_DATA}>
+            <PolarGrid stroke={C.muted} />
+            <PolarAngleAxis dataKey="skill" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+            <Radar name={lang==="bn"?"এই মেয়াদ":"This Term"} dataKey="current" stroke={C.forest} fill={C.forest} fillOpacity={0.25} />
+            <Radar name={lang==="bn"?"গত মেয়াদ":"Last Term"} dataKey="previous" stroke={C.gold} fill={C.gold} fillOpacity={0.1} strokeDasharray="4 2" />
+            <Legend wrapperStyle={{ fontSize:11 }} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </Card>
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {[
+          { icon:"💡", title: lang==="bn"?"শক্তি":"Strength", body: lang==="bn"?"সমস্যা সমাধানে তুমি এগিয়ে আছ। গণিতে ধারাবাহিক উন্নতি লক্ষ্যণীয়।":"Strong in problem solving. Consistent improvement in Math." },
+          { icon:"📌", title: lang==="bn"?"উন্নতির ক্ষেত্র":"Improve", body: lang==="bn"?"সৃজনশীলতা বাড়ানোর জন্য বেশি বেশি রচনা লেখার অভ্যাস করো।":"Practice more creative writing to boost creativity score." },
+          { icon:"🌟", title: lang==="bn"?"অনুপ্রেরণা":"Motivation", body: lang==="bn"?"তুমি শীর্ষ ২০%-এ আছ! আরও একটু চেষ্টা করলে শীর্ষ ১০%-এ যাবে।":"You're in top 20%! A little more effort to reach top 10%." },
+        ].map((a,i) => (
+          <Card key={i} style={{ padding:"14px 16px" }}>
+            <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
+              <span style={{ fontSize:18 }}>{a.icon}</span>
+              <div>
+                <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
+                  <span style={{ fontFamily:"'Sora',sans-serif", fontSize:12, fontWeight:700, color:C.dark }}>{a.title}</span>
+                  <AIBadge />
+                </div>
+                <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#555", margin:0, lineHeight:1.6 }}>{a.body}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+    <Card>
+      <SectionTitle>{lang==="bn"?"বিষয়ভিত্তিক পারফরম্যান্স (৬ মাস)":"Subject Performance (6 Months)"}</SectionTitle>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={PERFORMANCE_DATA}>
+          <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+          <XAxis dataKey="month" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+          <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend wrapperStyle={{ fontSize:11 }} />
+          <Line type="monotone" dataKey="math" name={lang==="bn"?"গণিত":"Math"} stroke={C.forest} strokeWidth={2.5} dot={{ r:3 }} />
+          <Line type="monotone" dataKey="bangla" name={lang==="bn"?"বাংলা":"Bangla"} stroke={C.gold} strokeWidth={2.5} dot={{ r:3 }} />
+          <Line type="monotone" dataKey="english" name={lang==="bn"?"ইংরেজি":"English"} stroke="#2E86AB" strokeWidth={2.5} dot={{ r:3 }} />
+          <Line type="monotone" dataKey="science" name={lang==="bn"?"বিজ্ঞান":"Science"} stroke="#A23B72" strokeWidth={2.5} dot={{ r:3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  </div>
+);
+
+const LibraryTab = ({ lang, downloads, setDownloads }) => (
+  <div>
+    <SectionTitle>{lang==="bn"?"ডিজিটাল লাইব্রেরি":"Digital Library"}</SectionTitle>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
+      {LIBRARY_ITEMS.map(item => {
+        const isDownloaded = downloads.includes(item.id);
+        const subColor = SUBJECT_COLORS[item.subject] || C.forest;
+        return (
+          <Card key={item.id} style={{ padding:0, overflow:"hidden" }}>
+            <div style={{ height:100, background:`linear-gradient(135deg, ${subColor}dd, ${subColor}88)`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", position:"relative" }}>
+              <span style={{ fontSize:36 }}>{item.subject==="গণিত"?"🔢":item.subject==="বাংলা"?"📖":item.subject==="বিজ্ঞান"?"🔬":item.subject==="ইংরেজি"?"📝":item.subject==="সমাজ বিজ্ঞান"?"🌍":item.subject==="আইসিটি"?"💻":"📚"}</span>
+              <div style={{ position:"absolute", top:10, left:10 }}>
+                <Badge color="gold">{item.type}</Badge>
+              </div>
+              {isDownloaded && <div style={{ position:"absolute", top:10, right:10 }}><Badge color="green">✓ অফলাইন</Badge></div>}
+            </div>
+            <div style={{ padding:"14px 16px" }}>
+              <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark, marginBottom:6 }}>{item.title}</div>
+              <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+                <Badge color="grey">{lang==="bn"?"শ্রেণী ":"Class "}{item.class}</Badge>
+                <span style={{ fontSize:11, color:"#999" }}>⏱ {item.duration}</span>
+                <span style={{ fontSize:11, color:"#999" }}>⬇️ {item.downloads.toLocaleString()}</span>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <Btn size="sm" variant="primary">খুলুন</Btn>
+                <Btn size="sm" variant="ghost" onClick={() => setDownloads(d => isDownloaded ? d.filter(x=>x!==item.id) : [...d, item.id])}>
+                  {isDownloaded ? "✓ সংরক্ষিত" : "📥 ডাউনলোড"}
+                </Btn>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const StudentAssessmentsTab = ({ lang }) => (
+  <div>
+    <SectionTitle>{lang==="bn"?"আমার মূল্যায়ন":"My Assessments"}</SectionTitle>
+    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      {[
+        { title:"গণিত মাসিক পরীক্ষা - এপ্রিল", subject:"গণিত", type:"মাসিক পরীক্ষা", date:"১৫ এপ্রিল ২০২৪", score:36, total:50, status:"graded" },
+        { title:"বিজ্ঞান কুইজ - চ্যাপ্টার ৪", subject:"বিজ্ঞান", type:"কুইজ", date:"২২ এপ্রিল ২০২৪", score:null, total:20, status:"submitted" },
+        { title:"গণিত শ্রেণী পরীক্ষা", subject:"গণিত", type:"শ্রেণী পরীক্ষা", date:"৫ মে ২০২৪", score:null, total:30, status:"pending" },
+      ].map((a,i) => (
+        <Card key={i}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+                <div style={{ width:10, height:10, borderRadius:"50%", background:SUBJECT_COLORS[a.subject]||C.forest, flexShrink:0 }} />
+                <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700, color:C.dark, margin:0 }}>{a.title}</h4>
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <Badge color="grey">{a.subject}</Badge>
+                <Badge color="gold">{a.type}</Badge>
+                <span style={{ fontSize:12, color:"#999" }}>📅 {a.date}</span>
+              </div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              {a.status==="graded" && (
+                <div>
+                  <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:22, fontWeight:700, color:C.forest }}>{a.score}/{a.total}</div>
+                  <Badge color={a.score/a.total >= 0.5 ? "green" : "red"}>{a.score/a.total >= 0.5 ? (lang==="bn"?"পাস":"Pass") : (lang==="bn"?"ফেল":"Fail")}</Badge>
+                </div>
+              )}
+              {a.status==="submitted" && <Badge color="blue">{lang==="bn"?"জমা দেওয়া হয়েছে":"Submitted"}</Badge>}
+              {a.status==="pending" && <Badge color="amber">{lang==="bn"?"মুলতুবি":"Pending"}</Badge>}
+            </div>
+          </div>
+          {a.status==="graded" && (
+            <div style={{ marginTop:12, padding:"12px 14px", background:C.warningBg, borderRadius:8 }}>
+              <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
+                <AIBadge />
+                <span style={{ fontFamily:"'Sora',sans-serif", fontSize:12, fontWeight:700, color:C.warning }}>উন্নতির পরামর্শ</span>
+              </div>
+              <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:C.warning, margin:0 }}>
+                {lang==="bn" ? "ত্রিভুজ ও বৃত্তের ক্ষেত্রফল সংক্রান্ত প্রশ্নে আরও মনোযোগ দাও। অধ্যায় ৬ পুনরায় পড়ার পরামর্শ দেওয়া হচ্ছে।" : "Focus more on area calculation problems. Recommend reviewing Chapter 6 again."}
+              </p>
+            </div>
+          )}
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const AskTeacherTab = ({ lang }) => (
+  <div>
+    <SectionTitle>{lang==="bn"?"শিক্ষককে প্রশ্ন করুন":"Ask a Teacher"}</SectionTitle>
+    <Card style={{ marginBottom:20 }}>
+      <textarea rows={3} placeholder={lang==="bn"?"আপনার প্রশ্ন লিখুন...":"Write your question..."} style={{ width:"100%", border:`1px solid ${C.muted}`, borderRadius:6, padding:"10px 12px", fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, resize:"none", boxSizing:"border-box", marginBottom:10 }} />
+      <div style={{ display:"flex", gap:8, justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ display:"flex", gap:6 }}>
+          {["গণিত","বিজ্ঞান","ইংরেজি","বাংলা"].map(s => (
+            <button key={s} style={{ padding:"4px 10px", borderRadius:9999, border:`1px solid ${C.muted}`, background:"none", fontSize:11, cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif" }}>{s}</button>
+          ))}
+        </div>
+        <Btn>{lang==="bn"?"প্রশ্ন পোস্ট করুন":"Post Question"}</Btn>
+      </div>
+    </Card>
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+      {QA_FEED.map(q => (
+        <Card key={q.id}>
+          <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+            <div style={{ width:36, height:36, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, flexShrink:0 }}>{q.student[0]}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
+                <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:700 }}>{q.student}</span>
+                <Badge color="gold">{q.subject}</Badge>
+                <span style={{ fontSize:11, color:"#999", marginLeft:"auto" }}>{q.time}</span>
+              </div>
+              <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, color:C.dark, margin:0 }}>{q.question}</p>
+            </div>
+          </div>
+          {q.answers.map((a,i) => (
+            <div key={i} style={{ marginLeft:46, padding:"12px 14px", background:C.successBg, borderRadius:8, borderLeft:`3px solid ${C.forest}` }}>
+              <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
+                <div style={{ width:28, height:28, borderRadius:"50%", background:C.gold, display:"flex", alignItems:"center", justifyContent:"center", color:C.dark, fontSize:12, fontWeight:700 }}>{a.teacher[0]}</div>
+                <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, fontWeight:700 }}>{a.teacher}</span>
+                <Badge color="green">{lang==="bn"?"শিক্ষক":"Teacher"}</Badge>
+                <span style={{ marginLeft:"auto", fontSize:11, color:C.success }}>👍 {a.votes}</span>
+              </div>
+              <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:C.dark, margin:0 }}>{a.text}</p>
+            </div>
+          ))}
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const GPAPredictor = ({ lang }) => {
+  const [grades, setGrades] = useState({ গণিত:"A+", বাংলা:"A", ইংরেজি:"A-", বিজ্ঞান:"A", "সমাজ বিজ্ঞান":"B" });
+  const gradePoints = { "A+":5.0, "A":4.0, "A-":3.5, "B":3.0, "C":2.0, "D":1.0, "F":0 };
+  const gpa = (Object.values(grades).reduce((s,g) => s + (gradePoints[g]||0), 0) / Object.keys(grades).length).toFixed(2);
+  return (
+    <div>
+      <SectionTitle>{lang==="bn"?"GPA পূর্বাভাস":"GPA Predictor"}</SectionTitle>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+        <Card>
+          {Object.entries(grades).map(([sub, grade]) => (
+            <div key={sub} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:600 }}>{sub}</span>
+              <select value={grade} onChange={e => setGrades({...grades, [sub]:e.target.value})}
+                style={{ padding:"6px 10px", borderRadius:6, border:`1px solid ${C.muted}`, fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13 }}>
+                {["A+","A","A-","B","C","D","F"].map(g => <option key={g}>{g}</option>)}
+              </select>
+            </div>
+          ))}
+        </Card>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <Card style={{ textAlign:"center", padding:"32px 20px" }}>
+            <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, color:"#666", marginBottom:8 }}>{lang==="bn"?"পূর্বাভাসিত GPA":"Predicted GPA"}</div>
+            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:52, fontWeight:700, color: parseFloat(gpa) >= 4.5 ? C.success : parseFloat(gpa) >= 3 ? C.warning : C.danger }}>{gpa}</div>
+            <div style={{ fontSize:13, color:"#999" }}>{lang==="bn"?"৫.০ স্কেলে":"out of 5.0"}</div>
+            <Badge color={parseFloat(gpa) >= 4.5 ? "green" : parseFloat(gpa) >= 3 ? "amber" : "red"} style={{ marginTop:12, display:"inline-block" }}>
+              {parseFloat(gpa) >= 4.5 ? (lang==="bn"?"অসাধারণ!":"Excellent!") : parseFloat(gpa) >= 3 ? (lang==="bn"?"ভালো":"Good") : (lang==="bn"?"উন্নতি প্রয়োজন":"Needs Improvement")}
+            </Badge>
+          </Card>
+          <Card style={{ padding:"14px 16px" }}>
+            <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:8 }}>
+              <AIBadge />
+              <span style={{ fontFamily:"'Sora',sans-serif", fontSize:12, fontWeight:700 }}>What-if Analysis</span>
+            </div>
+            <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#555", margin:0 }}>
+              {lang==="bn" ? `ইংরেজিতে A+ পেলে আপনার GPA ${(parseFloat(gpa) + 0.3).toFixed(2)} হবে।` : `Getting A+ in English would raise your GPA to ${(parseFloat(gpa) + 0.3).toFixed(2)}.`}
+            </p>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// TEACHER DASHBOARD TABS
+// ============================================================
+const TeacherAssessmentsTab = ({ lang }) => {
+  const [subTab, setSubTab] = useState("active");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [feedback, setFeedback] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const simulateAI = () => {
+    setAiLoading(true);
+    setTimeout(() => {
+      setFeedback(lang==="bn"
+        ? "তুমি সামগ্রিকভাবে ভালো করেছ। বীজগণিত অংশে আরও মনোযোগ দেওয়া প্রয়োজন। নিয়মিত অনুশীলন করলে পরবর্তী পরীক্ষায় আরও ভালো ফলাফল করতে পারবে।"
+        : "Overall good performance. More focus needed on algebra section. Regular practice will improve results in the next exam.");
+      setAiLoading(false);
+    }, 1500);
+  };
+
+  return (
+    <div>
+      <SectionTitle>{lang==="bn"?"মূল্যায়ন ব্যবস্থাপনা":"Assessment Management"}</SectionTitle>
+      <TabBar small tabs={[
+        { id:"active", label: lang==="bn"?"সক্রিয় মূল্যায়ন":"Active Assessments" },
+        { id:"grade", label: lang==="bn"?"জমা মূল্যায়ন করুন":"Grade Submissions" },
+        { id:"results", label: lang==="bn"?"ফলাফল":"Results" },
+        { id:"analytics", label: lang==="bn"?"বিশ্লেষণ":"Analytics" },
+        { id:"create", label: lang==="bn"?"নতুন তৈরি করুন":"Create New" },
+      ]} active={subTab} onSelect={setSubTab} />
+
+      {subTab === "active" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {ASSESSMENTS_MOCK.map(a => (
+            <Card key={a.id}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+                <div>
+                  <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+                    <div style={{ width:10, height:10, borderRadius:"50%", background:SUBJECT_COLORS[a.subject]||C.forest, flexShrink:0 }} />
+                    <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700, color:C.dark, margin:0 }}>{a.title}</h4>
+                  </div>
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    <Badge color="gold">{a.type}</Badge>
+                    <Badge color="grey">{a.subject}</Badge>
+                    <span style={{ fontSize:12, color:"#999" }}>📅 {a.date}</span>
+                    <span style={{ fontSize:12, color:"#999" }}>🎯 {lang==="bn"?"মোট নম্বর:":"Total:"} {a.totalMarks}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <Badge color={a.status==="graded"?"green":a.status==="grading"?"amber":a.status==="open"?"blue":"grey"}>
+                    {a.status==="graded"?(lang==="bn"?"সম্পন্ন":"Graded"):a.status==="grading"?(lang==="bn"?"মূল্যায়ন চলছে":"Grading"):a.status==="open"?(lang==="bn"?"খোলা":"Open"):(lang==="bn"?"খসড়া":"Draft")}
+                  </Badge>
+                  <div style={{ fontSize:12, color:"#999", marginTop:4 }}>{a.submitted}/{a.assigned} {lang==="bn"?"জমা দিয়েছে":"submitted"}</div>
+                </div>
+              </div>
+              {a.status === "graded" && (
+                <div style={{ marginTop:12, display:"flex", gap:16 }}>
+                  <div style={{ flex:1, background:C.successBg, borderRadius:8, padding:"10px 14px", textAlign:"center" }}>
+                    <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:20, fontWeight:700, color:C.success }}>{a.avgScore}/{a.totalMarks}</div>
+                    <div style={{ fontSize:11, color:C.success }}>{lang==="bn"?"শ্রেণীর গড়":"Class Avg"}</div>
+                  </div>
+                  <div style={{ flex:1, background:C.infoBg, borderRadius:8, padding:"10px 14px", textAlign:"center" }}>
+                    <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:20, fontWeight:700, color:C.info }}>{a.passRate}%</div>
+                    <div style={{ fontSize:11, color:C.info }}>{lang==="bn"?"পাসের হার":"Pass Rate"}</div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {subTab === "grade" && (
+        <div style={{ display:"grid", gridTemplateColumns:"260px 1fr", gap:16, minHeight:400 }}>
+          <Card style={{ padding:0, overflow:"hidden" }}>
+            <div style={{ padding:"12px 14px", background:C.warm, borderBottom:`1px solid ${C.muted}`, fontFamily:"'Sora',sans-serif", fontSize:12, fontWeight:700, color:C.dark }}>
+              {lang==="bn"?"শিক্ষার্থীর তালিকা":"Student List"} <span style={{ color:C.warning }}>— {lang==="bn"?"মূল্যায়ন চলছে":"Grading"}</span>
+            </div>
+            {STUDENTS.slice(0,6).map(s => (
+              <div key={s.id} onClick={() => setSelectedStudent(s)}
+                style={{ padding:"10px 14px", borderBottom:`1px solid ${C.muted}`, cursor:"pointer", background: selectedStudent?.id===s.id ? C.successBg : "white", borderLeft: selectedStudent?.id===s.id ? `3px solid ${C.forest}` : "3px solid transparent", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:32, height:32, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:700, flexShrink:0 }}>{s.name[0]}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</div>
+                  <div style={{ fontSize:11, color:"#999" }}>Roll: {s.roll}</div>
+                </div>
+                <Badge color="amber" size="xs">জমা</Badge>
+              </div>
+            ))}
+          </Card>
+          {selectedStudent ? (
+            <Card>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, paddingBottom:16, borderBottom:`1px solid ${C.muted}` }}>
+                <div style={{ width:48, height:48, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:18, fontWeight:700 }}>{selectedStudent.name[0]}</div>
+                <div>
+                  <h3 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:16, fontWeight:700, margin:0 }}>{selectedStudent.name}</h3>
+                  <span style={{ fontSize:12, color:"#999" }}>Roll {selectedStudent.roll} · Class {selectedStudent.class}{selectedStudent.section}</span>
+                </div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                {[{ q:"ত্রিভুজের ক্ষেত্রফল নির্ণয় কর", max:10 },{ q:"বীজগণিতীয় রাশি সরল কর", max:15 },{ q:"সমীকরণ সমাধান কর", max:25 }].map((q,i) => (
+                  <div key={i} style={{ padding:"12px 14px", background:C.warm, borderRadius:8 }}>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, marginBottom:8 }}>{i+1}. {q.q}</div>
+                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                      <input type="number" min={0} max={q.max} defaultValue={Math.floor(q.max*0.8)}
+                        style={{ width:60, padding:"6px 10px", borderRadius:6, border:`1px solid ${C.muted}`, textAlign:"center", fontFamily:"'JetBrains Mono',monospace", fontSize:14, fontWeight:600 }} />
+                      <span style={{ color:"#999", fontSize:13 }}>/ {q.max} {lang==="bn"?"নম্বর":"marks"}</span>
+                    </div>
+                  </div>
+                ))}
+                <div>
+                  <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+                    <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600 }}>{lang==="bn"?"সামগ্রিক মন্তব্য":"Overall Feedback"}</label>
+                    <button onClick={simulateAI} disabled={aiLoading}
+                      style={{ padding:"4px 10px", borderRadius:6, background:C.warningBg, border:"none", color:C.warning, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                      {aiLoading ? "✨ লিখছে..." : "✦ AI সহায়তা"}
+                    </button>
+                  </div>
+                  <textarea rows={3} value={feedback} onChange={e => setFeedback(e.target.value)}
+                    placeholder={lang==="bn"?"মন্তব্য লিখুন বা AI সহায়তা নিন...":"Write feedback or use AI assist..."}
+                    style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, resize:"vertical", boxSizing:"border-box" }} />
+                </div>
+                <Btn>{lang==="bn"?"সংরক্ষণ করুন ও পরবর্তী →":"Save & Next →"}</Btn>
+              </div>
+            </Card>
+          ) : (
+            <Card style={{ display:"flex", alignItems:"center", justifyContent:"center", color:"#999", fontFamily:"'Hind Siliguri',sans-serif" }}>
+              {lang==="bn"?"বাম থেকে শিক্ষার্থী নির্বাচন করুন":"Select a student from the left"}
+            </Card>
+          )}
+        </div>
+      )}
+
+      {subTab === "results" && (
+        <div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))", gap:16, marginBottom:20 }}>
+            <KPICard label={lang==="bn"?"শ্রেণীর গড়":"Class Avg"} value="36.4" sub="/50" icon="📊" color={C.forest} />
+            <KPICard label={lang==="bn"?"সর্বোচ্চ":"Highest"} value="48" sub="/50" icon="🏆" color={C.gold} />
+            <KPICard label={lang==="bn"?"সর্বনিম্ন":"Lowest"} value="18" sub="/50" icon="📉" color={C.danger} />
+            <KPICard label={lang==="bn"?"পাসের হার":"Pass Rate"} value="86%" icon="✅" color={C.success} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"শিক্ষার্থীর ফলাফল":"Student Results"}</SectionTitle>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>
+              <thead>
+                <tr style={{ background:C.warm }}>
+                  {["র‍্যাংক","নাম","স্কোর","গ্রেড","পাস/ফেল"].map(h => (
+                    <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:700, fontSize:12, color:"#555", borderBottom:`1px solid ${C.muted}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {STUDENTS.map((s,i) => {
+                  const score = Math.floor(30 + Math.random()*20);
+                  const pct = score/50;
+                  const grade = pct>=0.8?"A+":pct>=0.7?"A":pct>=0.6?"A-":pct>=0.5?"B":"C";
+                  return (
+                    <tr key={s.id} style={{ borderBottom:`1px solid ${C.muted}`, background: i%2===0?"transparent":C.warm+"50" }}>
+                      <td style={{ padding:"10px 12px", fontFamily:"'JetBrains Mono',monospace", fontWeight:600 }}>{i+1}</td>
+                      <td style={{ padding:"10px 12px" }}>{s.name}</td>
+                      <td style={{ padding:"10px 12px", fontFamily:"'JetBrains Mono',monospace", fontWeight:600, color:C.forest }}>{score}/50</td>
+                      <td style={{ padding:"10px 12px" }}><Badge color={pct>=0.6?"green":pct>=0.5?"amber":"red"}>{grade}</Badge></td>
+                      <td style={{ padding:"10px 12px" }}><Badge color={pct>=0.5?"green":"red"}>{pct>=0.5?(lang==="bn"?"পাস":"Pass"):(lang==="bn"?"ফেল":"Fail")}</Badge></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {subTab === "analytics" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <Card>
+            <SectionTitle badge={<AIBadge />}>{lang==="bn"?"পারফরম্যান্সের ধারা":"Performance Trend"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={[{m:"জানু",avg:68},{m:"ফেব্রু",avg:71},{m:"মার্চ",avg:69},{m:"এপ্রিল",avg:74},{m:"মে",avg:72},{m:"জুন",avg:76}]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="m" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="avg" name={lang==="bn"?"শ্রেণীর গড়":"Class Avg"} stroke={C.forest} strokeWidth={2.5} dot={{ r:4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+          <div style={{ padding:"16px", background:C.warningBg, borderRadius:12, borderLeft:`4px solid ${C.gold}` }}>
+            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+              <AIBadge />
+              <span style={{ fontFamily:"'Sora',sans-serif", fontSize:13, fontWeight:700, color:C.warning }}>{lang==="bn"?"AI বিশ্লেষণ":"AI Analysis"}</span>
+            </div>
+            <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:C.warning, margin:0 }}>
+              {lang==="bn" ? "৮ম শ্রেণীর ক বিভাগ ধারাবাহিকভাবে বিজ্ঞানে দুর্বল পারফর্ম করছে। ফেব্রুয়ারি থেকে ব্যবধান বাড়ছে। অধ্যায় ৪–৬ এ প্রতিকারমূলক সেশনের পরামর্শ দেওয়া হচ্ছে।" : "Class 8A consistently underperforms in Science. The gap has been widening since February. Recommend remedial sessions for Chapters 4-6."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {subTab === "create" && (
+        <Card>
+          <SectionTitle>{lang==="bn"?"নতুন মূল্যায়ন তৈরি করুন":"Create New Assessment"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+            {[
+              { label: lang==="bn"?"শিরোনাম":"Title", type:"text", placeholder: lang==="bn"?"মূল্যায়নের শিরোনাম...":"Assessment title..." },
+              { label: lang==="bn"?"বিষয়":"Subject", type:"select", options:SUBJECTS },
+              { label: lang==="bn"?"শ্রেণী":"Class", type:"select", options:["৬","৭","৮","৯","১০"] },
+              { label: lang==="bn"?"বিভাগ":"Section", type:"select", options:["ক","খ","গ"] },
+              { label: lang==="bn"?"তারিখ":"Date", type:"date", placeholder:"" },
+              { label: lang==="bn"?"মোট নম্বর":"Total Marks", type:"number", placeholder:"50" },
+            ].map((f,i) => (
+              <div key={i}>
+                <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, display:"block", marginBottom:6 }}>{f.label}</label>
+                {f.type === "select" ? (
+                  <select style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>
+                    {f.options.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input type={f.type} placeholder={f.placeholder} style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, boxSizing:"border-box" }} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop:16, display:"flex", gap:10 }}>
+            <Btn variant="ghost">{lang==="bn"?"খসড়া সংরক্ষণ":"Save Draft"}</Btn>
+            <Btn variant="gold">✦ {lang==="bn"?"মূল্যায়ন প্রকাশ করুন":"Publish Assessment"}</Btn>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+const TeacherProfile = ({ lang, readOnly = false }) => {
+  const t = TEACHERS[0];
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+      {/* Header */}
+      <Card style={{ background:`linear-gradient(135deg, ${C.dark} 0%, ${C.navy} 100%)`, color:"white" }}>
+        <div style={{ display:"flex", gap:16, alignItems:"flex-start", flexWrap:"wrap" }}>
+          <div style={{ width:80, height:80, borderRadius:"50%", background:`linear-gradient(135deg, ${C.forest}, ${C.emerald})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, fontWeight:700, fontFamily:"'Hind Siliguri',sans-serif", flexShrink:0, border:`3px solid ${C.gold}` }}>
+            {t.name[0]}
+          </div>
+          <div style={{ flex:1 }}>
+            <h2 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:24, fontWeight:700, margin:"0 0 6px", color:"white" }}>{t.name}</h2>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8 }}>
+              <Badge color="gold">সহকারী শিক্ষক</Badge>
+              <span style={{ fontSize:13, color:"rgba(255,255,255,0.7)" }}>📍 {t.school}</span>
+              <span style={{ fontSize:13, color:"rgba(255,255,255,0.7)" }}>🏙️ {t.district}</span>
+            </div>
+            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, color:"rgba(255,255,255,0.5)" }}>ID: TH-2024-04471</div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ background:"rgba(0,92,75,0.4)", borderRadius:8, padding:"8px 14px", border:`1px solid rgba(0,92,75,0.5)` }}>
+              <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:28, fontWeight:700, color:C.gold }}>{t.transferScore}</div>
+              <div style={{ display:"flex", gap:4, alignItems:"center", justifyContent:"center" }}>
+                <AIBadge />
+                <span style={{ fontSize:10, color:"rgba(255,255,255,0.6)" }}>{lang==="bn"?"বদলি স্কোর":"Transfer Score"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:16 }}>
+        <KPICard label={lang==="bn"?"মূল্যায়ন তৈরি":"Assessments Created"} value={t.assessmentsCreated} icon="📝" color={C.forest} />
+        <KPICard label={lang==="bn"?"গড় শ্রেণী স্কোর":"Avg Class Score"} value={t.avgClassScore} sub="/100" icon="📊" color={C.gold} />
+        <KPICard label={lang==="bn"?"পাসের হার":"Pass Rate"} value={`${t.passRate}%`} icon="✅" color={C.success} />
+        <KPICard label={lang==="bn"?"অভিজ্ঞতা":"Experience"} value={`${t.experience} বছর`} icon="🎓" color={C.info} />
+      </div>
+      {/* Assessment Performance Chart */}
+      <Card>
+        <SectionTitle>{lang==="bn"?"মূল্যায়নে পারফরম্যান্সের ধারা":"Assessment Performance Trend"}</SectionTitle>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={[
+            {a:"মূল্যায়ন ১",avg:71},{a:"মূল্যায়ন ২",avg:74},{a:"মূল্যায়ন ৩",avg:69},{a:"মূল্যায়ন ৪",avg:76},{a:"মূল্যায়ন ৫",avg:74}
+          ]}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+            <XAxis dataKey="a" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+            <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+            <Tooltip content={<CustomTooltip />} />
+            <Line type="monotone" dataKey="avg" name={lang==="bn"?"শ্রেণীর গড়":"Class Avg"} stroke={C.gold} strokeWidth={2.5} dot={{ r:4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
+      {/* Subject expertise */}
+      <Card>
+        <SectionTitle>{lang==="bn"?"বিষয় দক্ষতা":"Subject Expertise"}</SectionTitle>
+        {[{ sub:"গণিত", pct:90, level:"বিশেষজ্ঞ" },{ sub:"বিজ্ঞান", pct:65, level:"মধ্যবর্তী" },{ sub:"আইসিটি", pct:45, level:"শিক্ষানবিশ" }].map(e => (
+          <div key={e.sub} style={{ marginBottom:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+              <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600 }}>{e.sub}</span>
+              <div style={{ display:"flex", gap:6 }}>
+                <Badge color={e.pct>=80?"green":e.pct>=50?"amber":"grey"}>{e.level}</Badge>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, color:"#666" }}>{e.pct}%</span>
+              </div>
+            </div>
+            <div style={{ height:6, background:C.muted, borderRadius:3, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${e.pct}%`, background:e.pct>=80?C.success:e.pct>=50?C.warning:C.info, borderRadius:3, transition:"width 1s ease" }} />
+            </div>
+          </div>
+        ))}
+      </Card>
+      {/* Admin Notes */}
+      <Card>
+        <SectionTitle>{lang==="bn"?"প্রশাসনিক নোট":"Admin Notes"}</SectionTitle>
+        {[{ author:"বিদ্যালয় প্রশাসক", date:"১২ মার্চ ২০২৪", note:"নিয়মিত ক্লাস নেন এবং শিক্ষার্থীদের সাথে ভালো সম্পর্ক বজায় রাখেন।" }].map((n,i) => (
+          <div key={i} style={{ padding:"10px 14px", background:C.warm, borderRadius:8, marginBottom:8 }}>
+            <div style={{ display:"flex", gap:6, marginBottom:4 }}>
+              <Badge color="navy">{n.author}</Badge>
+              <span style={{ fontSize:11, color:"#999" }}>{n.date}</span>
+            </div>
+            <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, margin:0, color:C.dark }}>{n.note}</p>
+          </div>
+        ))}
+        {!readOnly && (
+          <div style={{ marginTop:10 }}>
+            <textarea rows={2} placeholder={lang==="bn"?"নোট যোগ করুন...":"Add a note..."} style={{ width:"100%", padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:13, fontFamily:"'Hind Siliguri',sans-serif", boxSizing:"border-box", marginBottom:8, resize:"vertical" }} />
+            <Btn size="sm">{lang==="bn"?"নোট সংরক্ষণ":"Save Note"}</Btn>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+const RiskHeatmap = ({ lang }) => (
+  <div>
+    <SectionTitle badge={<AIBadge />}>{lang==="bn"?"ঝুঁকির হিটম্যাপ":"Risk Heatmap"}</SectionTitle>
+    <Card style={{ overflowX:"auto" }}>
+      <table style={{ borderCollapse:"separate", borderSpacing:3, width:"100%" }}>
+        <thead>
+          <tr>
+            <th style={{ padding:"8px 10px", fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, textAlign:"left", color:"#555" }}>{lang==="bn"?"শিক্ষার্থী":"Student"}</th>
+            {["গণিত","বাংলা","ইংরেজি","বিজ্ঞান","সমাজ"].map(s => (
+              <th key={s} style={{ padding:"8px 10px", fontFamily:"'Hind Siliguri',sans-serif", fontSize:11, fontWeight:600, color:"#555", textAlign:"center", minWidth:60 }}>{s}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {STUDENTS.map(s => {
+            const scores = [Math.floor(40+s.score*0.6), Math.floor(35+s.score*0.55), Math.floor(30+s.score*0.5), Math.floor(38+s.score*0.52), Math.floor(36+s.score*0.54)];
+            return (
+              <tr key={s.id}>
+                <td style={{ padding:"6px 10px", fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>{s.name}</td>
+                {scores.map((sc,i) => {
+                  const pct = sc/100;
+                  const bg = pct>=0.85?C.success:pct>=0.7?C.emerald:pct>=0.55?C.gold:pct>=0.4?C.warning:C.danger;
+                  const textColor = pct>=0.55?"white":"white";
+                  return (
+                    <td key={i} title={`${s.name} — ${sc}/100`}
+                      style={{ padding:"10px 6px", background:bg, borderRadius:6, textAlign:"center", fontFamily:"'JetBrains Mono',monospace", fontSize:13, fontWeight:700, color:textColor, cursor:"pointer" }}>
+                      {sc}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div style={{ display:"flex", gap:12, marginTop:12, flexWrap:"wrap" }}>
+        {[{label:">85",color:C.success},{label:"70-84",color:C.emerald},{label:"55-69",color:C.gold},{label:"40-54",color:C.warning},{label:"<40",color:C.danger}].map(l => (
+          <div key={l.label} style={{ display:"flex", gap:4, alignItems:"center" }}>
+            <div style={{ width:14, height:14, borderRadius:3, background:l.color }} />
+            <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace" }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  </div>
+);
+
+// ============================================================
+// GOVERNMENT DASHBOARD TABS
+// ============================================================
+const NationalOverview = ({ lang }) => (
+  <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+    <div style={{ padding:"12px 16px", background:C.dangerBg, borderRadius:10, borderLeft:`4px solid ${C.danger}`, display:"flex", gap:10, alignItems:"center" }}>
+      <span style={{ fontSize:20 }}>⚠️</span>
+      <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:C.danger, fontWeight:600 }}>
+        {lang==="bn" ? "৩টি জেলায় ঝরে পড়ার ঝুঁকি ১৫% এর বেশি — তাৎক্ষণিক হস্তক্ষেপ প্রয়োজন" : "3 districts have dropout risk above 15% — Immediate intervention required"}
+      </span>
+    </div>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:16 }}>
+      <KPICard label={lang==="bn"?"জাতীয় গড় স্কোর":"National Avg Score"} value="68.4" icon="📊" color={C.forest} trend={2.4} />
+      <KPICard label={lang==="bn"?"মোট শিক্ষার্থী":"Total Students"} value="৪.০২ কোটি" icon="🎓" color={C.info} />
+      <KPICard label={lang==="bn"?"মোট বিদ্যালয়":"Total Schools"} value="১,৫২,০০০" icon="🏫" color={C.emerald} />
+      <KPICard label={lang==="bn"?"ঝরে পড়ার ঝুঁকি":"Dropout Risk"} value="9.2%" icon="⚠️" color={C.warning} />
+      <KPICard label={lang==="bn"?"ঝুঁকিপূর্ণ শিক্ষার্থী":"At-Risk Students"} value="৩৭ লক্ষ" icon="🔴" color={C.danger} />
+    </div>
+    <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:20 }}>
+      <Card>
+        <SectionTitle>{lang==="bn"?"জেলাভিত্তিক র‍্যাংকিং":"District Rankings"}</SectionTitle>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>
+          <thead>
+            <tr style={{ background:C.warm }}>
+              {["#","জেলা","বিভাগ","গড় স্কোর","ঝরে পড়া","স্ট্যাটাস"].map(h => (
+                <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, fontSize:11, color:"#555", borderBottom:`1px solid ${C.muted}` }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {DISTRICTS.sort((a,b)=>b.score-a.score).map((d,i) => (
+              <tr key={d.name} style={{ borderBottom:`1px solid ${C.muted}`, background:i%2===0?"transparent":C.warm+"50" }}>
+                <td style={{ padding:"8px 10px", fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>{i+1}</td>
+                <td style={{ padding:"8px 10px", fontWeight:600 }}>{d.name}</td>
+                <td style={{ padding:"8px 10px", color:"#666" }}>{d.div}</td>
+                <td style={{ padding:"8px 10px", fontFamily:"'JetBrains Mono',monospace", fontWeight:600, color:C.forest }}>{d.score}</td>
+                <td style={{ padding:"8px 10px" }}><Badge color={d.dropout<10?"green":d.dropout<15?"amber":"red"}>{d.dropout}%</Badge></td>
+                <td style={{ padding:"8px 10px" }}><Badge color={d.dropout<10?"green":d.dropout<15?"amber":"red"}>{d.dropout<10?(lang==="bn"?"ভালো":"Good"):d.dropout<15?(lang==="bn"?"সতর্কতা":"Watch"):(lang==="bn"?"জরুরি":"Critical")}</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      <Card>
+        <SectionTitle>{lang==="bn"?"বিদ্যালয়ের ধরন":"School Types"}</SectionTitle>
+        <ResponsiveContainer width="100%" height={200}>
+          <PieChart>
+            <Pie data={SCHOOL_TYPES} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name,value})=>`${name} ${value}%`} labelLine={false} fontSize={10}>
+              {SCHOOL_TYPES.map((e,i) => <Cell key={i} fill={e.color} />)}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
+    <Card>
+      <SectionTitle>{lang==="bn"?"জাতীয় পারফরম্যান্সের ধারা (২০১৯–২০২৪)":"National Performance Trend (2019-2024)"}</SectionTitle>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={NATIONAL_TREND}>
+          <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+          <XAxis dataKey="year" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+          <YAxis domain={[55,75]} tick={{ fontSize:11 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Line type="monotone" dataKey="score" name={lang==="bn"?"জাতীয় গড়":"National Avg"} stroke={C.forest} strokeWidth={3} dot={{ r:5, fill:C.gold }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  </div>
+);
+
+const PolicySimulation = ({ lang }) => {
+  const [budget, setBudget] = useState({ training:100, infra:200, edtech:50, meals:150, connectivity:30 });
+  const total = Object.values(budget).reduce((a,b)=>a+b,0);
+  const scoreImpact = ((budget.training*0.015 + budget.edtech*0.018 + budget.infra*0.008)).toFixed(1);
+  const dropoutReduction = ((budget.meals*0.012 + budget.connectivity*0.015 + budget.training*0.008)).toFixed(1);
+  const studentsImpacted = Math.floor((budget.infra*800 + budget.connectivity*1200 + budget.edtech*600)/1000000*10)/10;
+
+  return (
+    <div>
+      <SectionTitle badge={<AIBadge />}>{lang==="bn"?"নীতি সিমুলেশন":"Policy Simulation"}</SectionTitle>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+        <Card>
+          <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark, marginBottom:16 }}>
+            {lang==="bn"?"বাজেট বরাদ্দ":"Budget Allocation"} — <span style={{ color:C.forest, fontFamily:"'JetBrains Mono',monospace" }}>৳{total} {lang==="bn"?"কোটি":"Crore"}</span>
+          </h4>
+          {[
+            { key:"training", label: lang==="bn"?"শিক্ষক প্রশিক্ষণ":"Teacher Training", max:500, color:C.forest },
+            { key:"infra", label: lang==="bn"?"অবকাঠামো":"Infrastructure", max:1000, color:C.emerald },
+            { key:"edtech", label: lang==="bn"?"EdTech":"EdTech & Digital", max:300, color:C.info },
+            { key:"meals", label: lang==="bn"?"মিল কর্মসূচি":"Student Meals", max:400, color:C.gold },
+            { key:"connectivity", label: lang==="bn"?"গ্রামীণ সংযোগ":"Rural Connectivity", max:200, color:"#A23B72" },
+          ].map(s => (
+            <div key={s.key} style={{ marginBottom:16 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600 }}>{s.label}</span>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13, color:s.color, fontWeight:700 }}>৳{budget[s.key]} {lang==="bn"?"কোটি":"Cr"}</span>
+              </div>
+              <input type="range" min={0} max={s.max} value={budget[s.key]}
+                onChange={e => setBudget(b => ({...b, [s.key]:parseInt(e.target.value)}))}
+                style={{ width:"100%", accentColor:s.color, height:4, cursor:"pointer" }} />
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#bbb", marginTop:2 }}>
+                <span>০</span><span>{s.max}</span>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark, margin:0 }}>
+            {lang==="bn"?"পূর্বাভাসিত প্রভাব":"Projected Impact"}
+          </h4>
+          {[
+            { label: lang==="bn"?"স্কোর উন্নতি":"Score Improvement", value:`+${scoreImpact}%`, icon:"📈", color:C.success, bg:C.successBg },
+            { label: lang==="bn"?"ঝরে পড়া হ্রাস":"Dropout Reduction", value:`-${dropoutReduction}%`, icon:"🎯", color:C.forest, bg:"#e8f5ee" },
+            { label: lang==="bn"?"প্রভাবিত শিক্ষার্থী":"Students Impacted", value:`${studentsImpacted}M`, icon:"🎓", color:C.info, bg:C.infoBg },
+            { label: lang==="bn"?"প্রশিক্ষিত শিক্ষক":"Teachers Trained", value:`${Math.floor(budget.training*8).toLocaleString()}`, icon:"👩‍🏫", color:C.gold, bg:C.warningBg },
+          ].map((item,i) => (
+            <div key={i} style={{ background:item.bg, borderRadius:10, padding:"14px 16px", border:`1px solid ${item.color}22`, display:"flex", gap:12, alignItems:"center" }}>
+              <span style={{ fontSize:24 }}>{item.icon}</span>
+              <div>
+                <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:22, fontWeight:700, color:item.color }}>{item.value}</div>
+                <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#666" }}>{item.label}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ padding:"12px 14px", background:C.warningBg, borderRadius:8, borderLeft:`3px solid ${C.gold}` }}>
+            <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
+              <AIBadge />
+              <span style={{ fontFamily:"'Sora',sans-serif", fontSize:11, fontWeight:700, color:C.warning }}>AI বিশ্লেষণ</span>
+            </div>
+            <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:C.warning, margin:0 }}>
+              {lang==="bn" ? `শিক্ষক প্রশিক্ষণে ৳${budget.training} কোটি বিনিয়োগ সর্বোচ্চ ROI দেবে। গ্রামীণ সংযোগ বৃদ্ধিতে মনোযোগ দিলে ঝরে পড়া উল্লেখযোগ্যভাবে কমবে।` : `Investing ৳${budget.training}Cr in teacher training gives highest ROI. Focusing on rural connectivity will significantly reduce dropout rates.`}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GovTeacherRegistry = ({ lang }) => (
+  <div>
+    <SectionTitle>{lang==="bn"?"জাতীয় শিক্ষকের তালিকা":"National Teacher Registry"}</SectionTitle>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:16, marginBottom:20 }}>
+      {TEACHERS.map(t => (
+        <Card key={t.id}>
+          <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:12 }}>
+            <div style={{ width:48, height:48, borderRadius:"50%", background:`linear-gradient(135deg, ${C.forest}, ${C.emerald})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:18, fontWeight:700, flexShrink:0 }}>{t.name[0]}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark }}>{t.name}</div>
+              <div style={{ fontSize:12, color:"#666", marginTop:2 }}>{t.school}</div>
+              <div style={{ fontSize:11, color:"#999" }}>📍 {t.district}</div>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
+            <Badge color="gold">{t.subject}</Badge>
+            <Badge color="grey">{lang==="bn"?"অভিজ্ঞতা":"Exp"}: {t.experience} yr</Badge>
+          </div>
+          <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+            <div style={{ flex:1, background:C.successBg, borderRadius:6, padding:"8px", textAlign:"center" }}>
+              <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:16, fontWeight:700, color:C.success }}>{t.avgClassScore}</div>
+              <div style={{ fontSize:10, color:C.success }}>{lang==="bn"?"গড় স্কোর":"Avg Score"}</div>
+            </div>
+            <div style={{ flex:1, background:C.warningBg, borderRadius:6, padding:"8px", textAlign:"center" }}>
+              <div style={{ display:"flex", gap:3, alignItems:"center", justifyContent:"center" }}>
+                <AIBadge />
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:16, fontWeight:700, color:C.warning }}>{t.transferScore}</span>
+              </div>
+              <div style={{ fontSize:10, color:C.warning }}>{lang==="bn"?"বদলি স্কোর":"Transfer Score"}</div>
+            </div>
+          </div>
+          <Btn size="sm" variant="ghost" style={{ width:"100%" }}>{lang==="bn"?"সম্পূর্ণ প্রোফাইল দেখুন":"View Full Profile"}</Btn>
+        </Card>
+      ))}
+    </div>
+    <TeacherProfile lang={lang} readOnly={true} />
+  </div>
+);
+
+// ============================================================
+// PARENT DASHBOARD
+// ============================================================
+const ParentOverview = ({ lang, child }) => (
+  <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:16 }}>
+      <KPICard label={lang==="bn"?"পারফরম্যান্স স্কোর":"Performance Score"} value={child.score} sub="/100" icon="🎯" color={C.forest} />
+      <KPICard label={lang==="bn"?"শ্রেণী র‍্যাংক":"Class Rank"} value={`#${child.rank}`} icon="🏆" color={C.gold} />
+      <KPICard label={lang==="bn"?"উপস্থিতি":"Attendance"} value={`${child.attendance}%`} icon="📅" color={child.attendance>=85?C.success:C.warning} />
+      <KPICard label={lang==="bn"?"GPA":"GPA"} value={child.gpa} sub="/5.0" icon="🎓" color={C.info} />
+    </div>
+    <Card style={{ borderLeft:`4px solid ${child.risk==="high"?C.danger:child.risk==="medium"?C.gold:C.forest}` }}>
+      <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
+        <span style={{ fontSize:24 }}>{child.risk==="high"?"⚠️":child.risk==="medium"?"📌":"✅"}</span>
+        <div>
+          <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+            <span style={{ fontFamily:"'Sora',sans-serif", fontSize:14, fontWeight:700, color:C.dark }}>{lang==="bn"?"AI সতর্কতা":"AI Alert"}</span>
+            <AIBadge />
+            <RiskBadge level={child.risk} lang={lang} />
+          </div>
+          <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:"#555", margin:0 }}>
+            {child.risk==="low" ? (lang==="bn"?"আপনার সন্তান ভালো করছে! নিয়মিত পড়ার অভ্যাস বজায় রাখুন।":"Your child is doing great! Keep up the regular study habits.") : lang==="bn"?"বিজ্ঞান ও ইংরেজিতে মনোযোগ বাড়ানো প্রয়োজন। শিক্ষকের সাথে কথা বলুন।":"Science and English need more attention. Please contact the teacher."}
+          </p>
+        </div>
+      </div>
+    </Card>
+    <Card>
+      <SectionTitle>{lang==="bn"?"পারফরম্যান্সের ধারা":"Performance Trend"}</SectionTitle>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={PERFORMANCE_DATA}>
+          <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+          <XAxis dataKey="month" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+          <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Line type="monotone" dataKey="math" name="গণিত" stroke={C.forest} strokeWidth={2} dot={{ r:3 }} />
+          <Line type="monotone" dataKey="science" name="বিজ্ঞান" stroke={C.gold} strokeWidth={2} dot={{ r:3 }} strokeDasharray="5 3" />
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  </div>
+);
+
+// ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+const AdminOverview = ({ lang }) => (
+  <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:16 }}>
+      <KPICard label={lang==="bn"?"মোট শিক্ষার্থী":"Total Students"} value="1,248" icon="🎓" color={C.forest} />
+      <KPICard label={lang==="bn"?"মোট শিক্ষক":"Total Teachers"} value="42" icon="👩‍🏫" color={C.info} />
+      <KPICard label={lang==="bn"?"আজকের উপস্থিতি":"Today's Attendance"} value="94.2%" icon="📅" color={C.success} />
+      <KPICard label={lang==="bn"?"পাসের হার":"Pass Rate"} value="87.3%" icon="✅" color={C.emerald} />
+      <KPICard label={lang==="bn"?"ঝরে পড়ার ঝুঁকি":"Dropout Risk"} value="23" icon="⚠️" color={C.warning} />
+    </div>
+    <Card>
+      <SectionTitle>{lang==="bn"?"বিদ্যালয়ের পারফরম্যান্সের ধারা":"School Performance Trend"}</SectionTitle>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={[{m:"জানু",score:71},{m:"ফেব্রু",score:73},{m:"মার্চ",score:70},{m:"এপ্রিল",score:76},{m:"মে",score:75},{m:"জুন",score:78}]}>
+          <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+          <XAxis dataKey="m" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+          <YAxis domain={[60,90]} tick={{ fontSize:11 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar dataKey="score" name={lang==="bn"?"গড় স্কোর":"Avg Score"} fill={C.forest} radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
+  </div>
+);
+
+// ============================================================
+// LOGIN PAGE
+// ============================================================
+const LoginPage = ({ onLogin }) => {
+  const [selectedRole, setSelectedRole] = useState("student");
+  const [lang, setLang] = useState("bn");
+  const roles = [
+    { id:"student", icon:"🎓", bn:"ছাত্র/ছাত্রী", en:"Student", email:"student@bhobishyot.edu.bd" },
+    { id:"parent", icon:"👨‍👩‍👧", bn:"অভিভাবক", en:"Parent", email:"parent@bhobishyot.edu.bd" },
+    { id:"teacher", icon:"👩‍🏫", bn:"শিক্ষক", en:"Teacher", email:"teacher@bhobishyot.edu.bd" },
+    { id:"admin", icon:"🏫", bn:"বিদ্যালয় প্রশাসক", en:"School Admin", email:"admin@bhobishyot.edu.bd" },
+    { id:"government", icon:"🏛️", bn:"সরকারি কর্মকর্তা", en:"Government Officer", email:"gov@bhobishyot.edu.bd" },
+  ];
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", fontFamily:"'Hind Siliguri',sans-serif" }}>
+      {/* Left panel */}
+      <div style={{ flex:"0 0 42%", background:`linear-gradient(160deg, #003d32 0%, #005C4B 45%, #003d32 100%)`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:48, position:"relative", overflow:"hidden" }}>
+        {/* Decorative circles */}
+        {[200,300,400].map(s => (
+          <div key={s} style={{ position:"absolute", width:s, height:s, border:"1px solid rgba(255,255,255,0.06)", borderRadius:"50%", top:"50%", left:"50%", transform:"translate(-50%,-50%)" }} />
+        ))}
+        {/* Particles */}
+        {Array.from({length:16}).map((_,i) => (
+          <div key={i} style={{ position:"absolute", width:3, height:3, borderRadius:"50%", background:i%3===0?"#E8A020":"rgba(255,255,255,0.3)", top:`${10+Math.random()*80}%`, left:`${5+Math.random()*90}%`, animation:`float ${3+Math.random()*4}s ease-in-out ${Math.random()*3}s infinite alternate` }} />
+        ))}
+        <style>{`@keyframes float { from{transform:translateY(0)} to{transform:translateY(-12px)} }`}</style>
+        <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
+          <Logo size={72} variant="full" theme="dark" showTagline={true} />
+          <div style={{ marginTop:32, padding:"16px 24px", background:"rgba(255,255,255,0.06)", borderRadius:12, backdropFilter:"blur(10px)", border:"1px solid rgba(255,255,255,0.1)" }}>
+            <p style={{ color:"rgba(255,255,255,0.7)", fontSize:14, margin:0, fontStyle:"italic" }}>
+              {lang==="bn" ? '"শিক্ষার আলো, সবার জন্য"' : '"Education for All"'}
+            </p>
+          </div>
+          <div style={{ marginTop:24, display:"flex", flexDirection:"column", gap:8 }}>
+            {["৪ কোটি ২০ লক্ষ শিক্ষার্থী","১,৫২,০০০ বিদ্যালয়","৮টি বিভাগ · ৬৪টি জেলা"].map((s,i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, color:"rgba(255,255,255,0.55)", fontSize:12 }}>
+                <div style={{ width:4, height:4, borderRadius:"50%", background:C.gold }} />
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Right panel */}
+      <div style={{ flex:1, background:C.warm, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:48, position:"relative" }}>
+        {/* Lang toggle top right */}
+        <div style={{ position:"absolute", top:24, right:24, display:"flex", background:C.muted, borderRadius:9999, padding:3 }}>
+          {["en","bn"].map(l => (
+            <button key={l} onClick={() => setLang(l)}
+              style={{ padding:"4px 12px", borderRadius:9999, border:"none", background: lang===l ? C.forest : "transparent", color: lang===l ? "#fff" : "#666", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif" }}>
+              {l==="en"?"EN":"বাং"}
+            </button>
+          ))}
+        </div>
+        <div style={{ width:"100%", maxWidth:480 }}>
+          <h1 style={{ fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:700, color:C.dark, marginBottom:6 }}>
+            {lang==="bn" ? "আপনার অ্যাকাউন্টে প্রবেশ করুন" : "Sign In to Your Account"}
+          </h1>
+          <p style={{ color:"#888", fontSize:13, marginBottom:28 }}>
+            {lang==="bn" ? "আপনার ভূমিকা নির্বাচন করুন" : "Select your role to continue"}
+          </p>
+          {/* Role cards */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24 }}>
+            {roles.map(r => (
+              <button key={r.id} onClick={() => setSelectedRole(r.id)}
+                style={{ padding:"12px 14px", borderRadius:10, border:`2px solid ${selectedRole===r.id ? C.forest : C.muted}`, background: selectedRole===r.id ? C.successBg : C.paper, cursor:"pointer", display:"flex", gap:10, alignItems:"center", transition:"all 0.15s" }}>
+                <span style={{ fontSize:20 }}>{r.icon}</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:700, color: selectedRole===r.id ? C.forest : C.dark }}>{lang==="bn" ? r.bn : r.en}</div>
+                </div>
+                {selectedRole===r.id && <span style={{ marginLeft:"auto", color:C.forest }}>✓</span>}
+              </button>
+            ))}
+          </div>
+          {/* Email/pass */}
+          <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
+            <div>
+              <label style={{ fontSize:13, fontWeight:600, color:C.dark, display:"block", marginBottom:6, fontFamily:"'Hind Siliguri',sans-serif" }}>{lang==="bn"?"ইমেইল":"Email"}</label>
+              <input defaultValue={roles.find(r=>r.id===selectedRole)?.email} style={{ width:"100%", padding:"11px 14px", borderRadius:8, border:`1.5px solid ${C.muted}`, fontSize:14, background:C.paper, color:C.dark, boxSizing:"border-box", fontFamily:"'Plus Jakarta Sans',sans-serif" }} />
+            </div>
+            <div>
+              <label style={{ fontSize:13, fontWeight:600, color:C.dark, display:"block", marginBottom:6, fontFamily:"'Hind Siliguri',sans-serif" }}>{lang==="bn"?"পাসওয়ার্ড":"Password"}</label>
+              <input type="password" defaultValue="demo123" style={{ width:"100%", padding:"11px 14px", borderRadius:8, border:`1.5px solid ${C.muted}`, fontSize:14, background:C.paper, color:C.dark, boxSizing:"border-box", fontFamily:"'Plus Jakarta Sans',sans-serif" }} />
+            </div>
+          </div>
+          <button onClick={() => onLogin(selectedRole, lang)}
+            style={{ width:"100%", padding:"13px", background:`linear-gradient(135deg, ${C.forest}, ${C.emerald})`, color:"#fff", border:"none", borderRadius:10, fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif", boxShadow:"0 4px 20px rgba(0,92,75,0.3)", marginBottom:12 }}>
+            {lang==="bn" ? "প্রবেশ করুন →" : "Sign In →"}
+          </button>
+          <p style={{ textAlign:"center", fontSize:11, color:"#aaa" }}>
+            {lang==="bn" ? "ডেমো অ্যাকাউন্ট: demo123" : "Demo password: demo123"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN APP
+// ============================================================
+export default function App() {
+  const [session, setSession] = useState(null);
+  const [lang, setLang] = useState("bn");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [collapsed, setCollapsed] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(0);
+  const [downloads, setDownloads] = useState([]);
+  const [notifications] = useState([
+    { id:1, icon:"📝", title:"নতুন মূল্যায়ন প্রকাশিত", time:"২ মিনিট আগে", read:false },
+    { id:2, icon:"📢", title:"SSC পরীক্ষার নোটিশ", time:"১ ঘণ্টা আগে", read:false },
+    { id:3, icon:"✅", title:"আপনার মূল্যায়ন মূল্যায়িত হয়েছে", time:"৩ ঘণ্টা আগে", read:true },
+  ]);
+
+  const children = [STUDENTS[0], STUDENTS[1]];
+  const child = children[selectedChild];
+
+  const handleLogin = (role, loginLang) => {
+    setSession({ role, name: role==="student"?"আরিফ হোসেন":role==="parent"?"রোকেয়া বেগম":role==="teacher"?"ফাতেমা বেগম":role==="admin"?"প্রশাসক আহমেদ":"কর্মকর্তা রহমান" });
+    setLang(loginLang || "bn");
+    setActiveTab(role==="government"?"national":"overview");
+  };
+
+  const getPageTitle = () => {
+    if (!session) return "";
+    const role = session.role;
+    const items = SIDEBAR_ITEMS[role] || [];
+    const item = items.find(i => i.id === activeTab);
+    return item ? (lang==="bn" ? item.labelBn : item.labelEn) : "";
+  };
+
+  if (!session) {
+    return (
+      <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
+        <LoginPage onLogin={handleLogin} />
+      </>
+    );
+  }
+
+  const { role } = session;
+
+  const renderContent = () => {
+    // STUDENT
+    if (role === "student") {
+      if (activeTab === "overview") return <StudentOverview lang={lang} />;
+      if (activeTab === "library") return <LibraryTab lang={lang} downloads={downloads} setDownloads={setDownloads} />;
+      if (activeTab === "assessments") return <StudentAssessmentsTab lang={lang} />;
+      if (activeTab === "cognitive") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"জ্ঞান দক্ষতার বিশ্লেষণ":"Cognitive Skills Analysis"}</SectionTitle>
+          <Card>
+            <ResponsiveContainer width="100%" height={300}>
+              <RadarChart data={COGNITIVE_DATA}>
+                <PolarGrid stroke={C.muted} />
+                <PolarAngleAxis dataKey="skill" tick={{ fontSize:12, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <Radar name={lang==="bn"?"বর্তমান":"Current"} dataKey="current" stroke={C.forest} fill={C.forest} fillOpacity={0.25} />
+                <Radar name={lang==="bn"?"পূর্ববর্তী":"Previous"} dataKey="previous" stroke={C.gold} fill={C.gold} fillOpacity={0.1} strokeDasharray="4 2" />
+                <Legend />
+              </RadarChart>
+            </ResponsiveContainer>
+          </Card>
+          <div style={{ marginTop:16, display:"flex", flexDirection:"column", gap:10 }}>
+            {COGNITIVE_DATA.map(d => (
+              <Card key={d.skill} style={{ padding:"12px 16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600 }}>{d.skill}</span>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13, color:C.forest, fontWeight:700 }}>{d.current}</span>
+                    <span style={{ fontSize:11, color: d.current>d.previous?C.success:C.danger }}>{d.current>d.previous?"↑":"↓"}{Math.abs(d.current-d.previous)}</span>
+                  </div>
+                </div>
+                <div style={{ height:6, background:C.muted, borderRadius:3 }}>
+                  <div style={{ height:"100%", width:`${d.current}%`, background:C.forest, borderRadius:3 }} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "performance") return (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:14 }}>
+            {[["গণিত",82,C.forest],["বাংলা",76,C.gold],["ইংরেজি",71,"#2E86AB"],["বিজ্ঞান",69,"#A23B72"],["সমাজ",74,C.emerald]].map(([sub,score,color]) => (
+              <KPICard key={sub} label={sub} value={score} sub="/100" icon="📖" color={color} trend={2} />
+            ))}
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"৬ মাসের পারফরম্যান্স":"6-Month Performance"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={PERFORMANCE_DATA}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="month" tick={{ fontSize:11 }} />
+                <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line type="monotone" dataKey="math" name="গণিত" stroke={C.forest} strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="bangla" name="বাংলা" stroke={C.gold} strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="english" name="ইংরেজি" stroke="#2E86AB" strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="science" name="বিজ্ঞান" stroke="#A23B72" strokeWidth={2} dot={{ r:3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+      if (activeTab === "growth") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"AI বিকাশ পরিকল্পনা":"AI Growth Plan"}</SectionTitle>
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {[
+              { priority:"high", status:"চলমান", title:"গণিতের বীজগণিত অধ্যায় পুনরাবৃত্তি", desc:"অধ্যায় ৬ ও ৭ পুনরায় পড়ুন। প্রতিদিন ১০টি অনুশীলনী সমাধান করুন।" },
+              { priority:"medium", status:"শুরু হয়নি", title:"ইংরেজি গ্রামার দক্ষতা বৃদ্ধি", desc:"Tense ও Preposition-এ আরও মনোযোগ দিন। ডিজিটাল লাইব্রেরি থেকে কুইজ সমাধান করুন।" },
+              { priority:"low", status:"সম্পন্ন", title:"বিজ্ঞানের পরীক্ষার প্রস্তুতি", desc:"Newton's Laws এবং Energy সংক্রান্ত অধ্যায়গুলি সম্পন্ন করুন।" },
+            ].map((a,i) => (
+              <Card key={i} style={{ borderLeft:`4px solid ${a.priority==="high"?C.danger:a.priority==="medium"?C.gold:C.success}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8, flexWrap:"wrap", gap:8 }}>
+                  <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark }}>{a.title}</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <Badge color={a.priority==="high"?"red":a.priority==="medium"?"amber":"grey"}>{a.priority==="high"?"উচ্চ অগ্রাধিকার":a.priority==="medium"?"মধ্যম":"কম"}</Badge>
+                    <Badge color={a.status==="সম্পন্ন"?"green":a.status==="চলমান"?"blue":"grey"}>{a.status}</Badge>
+                  </div>
+                </div>
+                <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:"#555", margin:0 }}>{a.desc}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "career") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"ক্যারিয়ার সম্ভাবনা":"Career Alignment"}</SectionTitle>
+          <Card>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart layout="vertical" data={[
+                { career:"কম্পিউটার বিজ্ঞান", score:91 },{ career:"প্রকৌশল", score:82 },
+                { career:"ব্যবসা", score:79 },{ career:"চিকিৎসা", score:74 },
+                { career:"শিক্ষকতা", score:68 },{ career:"কৃষিবিজ্ঞান", score:65 },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis type="number" domain={[0,100]} tick={{ fontSize:11 }} />
+                <YAxis type="category" dataKey="career" width={120} tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="score" fill={C.forest} radius={[0,4,4,0]} label={{ position:"right", fontSize:11, fontFamily:"'JetBrains Mono',monospace" }} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+      if (activeTab === "gpa") return <GPAPredictor lang={lang} />;
+      if (activeTab === "askteacher") return <AskTeacherTab lang={lang} />;
+      if (activeTab === "notices") return <NoticesTab lang={lang} />;
+      if (activeTab === "messages") return <MessagesTab lang={lang} />;
+    }
+
+    // PARENT
+    if (role === "parent") {
+      if (activeTab === "overview") return <ParentOverview lang={lang} child={child} />;
+      if (activeTab === "performance") return (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <Card>
+            <SectionTitle>{lang==="bn"?"পারফরম্যান্সের ধারা":"Performance Trend"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={PERFORMANCE_DATA}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="month" tick={{ fontSize:11 }} />
+                <YAxis domain={[50,100]} tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line type="monotone" dataKey="math" name="গণিত" stroke={C.forest} strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="science" name="বিজ্ঞান" stroke={C.gold} strokeWidth={2} dot={{ r:3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            <Card>
+              <SectionTitle badge={<Badge color="green">শক্তি</Badge>}>{lang==="bn"?"সেরা বিষয়":"Strong Subjects"}</SectionTitle>
+              {[["গণিত",82],["তাসনিম",91],["বাংলা",76]].map(([sub,sc]) => (
+                <div key={sub} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>{sub}</span>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <div style={{ width:80, height:6, background:C.muted, borderRadius:3 }}>
+                      <div style={{ width:`${sc}%`, height:"100%", background:C.success, borderRadius:3 }} />
+                    </div>
+                    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, fontWeight:600, color:C.success }}>{sc}</span>
+                  </div>
+                </div>
+              ))}
+            </Card>
+            <Card>
+              <SectionTitle badge={<Badge color="amber">মনোযোগ</Badge>}>{lang==="bn"?"উন্নতি প্রয়োজন":"Needs Attention"}</SectionTitle>
+              {[["ইংরেজি",71],["বিজ্ঞান",69],["সমাজ",74]].map(([sub,sc]) => (
+                <div key={sub} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>{sub}</span>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <div style={{ width:80, height:6, background:C.muted, borderRadius:3 }}>
+                      <div style={{ width:`${sc}%`, height:"100%", background:C.warning, borderRadius:3 }} />
+                    </div>
+                    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, fontWeight:600, color:C.warning }}>{sc}</span>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+        </div>
+      );
+      if (activeTab === "attendance") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"উপস্থিতির বিবরণ":"Attendance Details"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:14, marginBottom:20 }}>
+            <KPICard label={lang==="bn"?"উপস্থিত":"Present"} value="46" sub={lang==="bn"?"দিন":"days"} icon="✅" color={C.success} />
+            <KPICard label={lang==="bn"?"অনুপস্থিত":"Absent"} value="4" sub={lang==="bn"?"দিন":"days"} icon="❌" color={C.danger} />
+            <KPICard label={lang==="bn"?"দেরি":"Late"} value="2" sub={lang==="bn"?"দিন":"days"} icon="⏰" color={C.warning} />
+            <KPICard label={lang==="bn"?"উপস্থিতির হার":"Attendance Rate"} value={`${child.attendance}%`} icon="📅" color={child.attendance>=85?C.success:C.warning} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"এপ্রিল ২০২৪":"April 2024"}</SectionTitle>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+              {["রবি","সোম","মঙ্গল","বুধ","বৃহ","শুক্র","শনি"].map(d => (
+                <div key={d} style={{ padding:"6px 0", textAlign:"center", fontSize:10, fontFamily:"'Hind Siliguri',sans-serif", fontWeight:700, color:"#888" }}>{d}</div>
+              ))}
+              {Array.from({length:30}).map((_,i) => {
+                const status = i===2||i===15?"absent":i===8?"late":i>=5&&i<7?"holiday":"present";
+                return (
+                  <div key={i} style={{ padding:6, textAlign:"center", borderRadius:6, background:status==="absent"?C.dangerBg:status==="late"?C.warningBg:status==="holiday"?C.muted:C.successBg, fontSize:11, fontFamily:"'JetBrains Mono',monospace", color:status==="absent"?C.danger:status==="late"?C.warning:status==="holiday"?"#999":C.success, fontWeight:600, cursor:"default" }}>
+                    {i+1}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display:"flex", gap:14, marginTop:12, flexWrap:"wrap" }}>
+              {[{label:lang==="bn"?"উপস্থিত":"Present",color:C.successBg,tc:C.success},{label:lang==="bn"?"অনুপস্থিত":"Absent",color:C.dangerBg,tc:C.danger},{label:lang==="bn"?"দেরি":"Late",color:C.warningBg,tc:C.warning},{label:lang==="bn"?"ছুটি":"Holiday",color:C.muted,tc:"#888"}].map(l => (
+                <div key={l.label} style={{ display:"flex", gap:4, alignItems:"center" }}>
+                  <div style={{ width:12, height:12, borderRadius:3, background:l.color, border:`1px solid ${l.tc}33` }} />
+                  <span style={{ fontSize:11, color:l.tc, fontFamily:"'Hind Siliguri',sans-serif" }}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      );
+      if (activeTab === "assessments") return <StudentAssessmentsTab lang={lang} />;
+      if (activeTab === "cognitive") return (
+        <Card>
+          <SectionTitle>{lang==="bn"?"জ্ঞান দক্ষতার প্রোফাইল":"Cognitive Skill Profile"}</SectionTitle>
+          <ResponsiveContainer width="100%" height={280}>
+            <RadarChart data={COGNITIVE_DATA}>
+              <PolarGrid /><PolarAngleAxis dataKey="skill" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+              <Radar name={lang==="bn"?"দক্ষতা":"Skills"} dataKey="current" stroke={C.forest} fill={C.forest} fillOpacity={0.25} />
+              <Legend />
+            </RadarChart>
+          </ResponsiveContainer>
+        </Card>
+      );
+      if (activeTab === "notices") return <NoticesTab lang={lang} />;
+      if (activeTab === "messages") return <MessagesTab lang={lang} />;
+    }
+
+    // TEACHER
+    if (role === "teacher") {
+      if (activeTab === "overview") return (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:14 }}>
+            <KPICard label={lang==="bn"?"মোট শিক্ষার্থী":"Total Students"} value="126" icon="🎓" color={C.forest} />
+            <KPICard label={lang==="bn"?"পাসের হার":"Pass Rate"} value="88%" icon="✅" color={C.success} />
+            <KPICard label={lang==="bn"?"গড় স্কোর":"Avg Score"} value="74.2" icon="📊" color={C.gold} />
+            <KPICard label={lang==="bn"?"উপস্থিতির হার":"Attendance"} value="91%" icon="📅" color={C.info} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"বিভাগভিত্তিক পারফরম্যান্স":"Section Performance"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[{section:"ক বিভাগ",avg:76,pass:90},{section:"খ বিভাগ",avg:72,pass:85},{section:"গ বিভাগ",avg:71,pass:82}]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="section" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <YAxis tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Bar dataKey="avg" name={lang==="bn"?"গড় স্কোর":"Avg Score"} fill={C.forest} radius={[4,4,0,0]} />
+                <Bar dataKey="pass" name={lang==="bn"?"পাস %":"Pass %"} fill={C.gold} radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+      if (activeTab === "heatmap") return <RiskHeatmap lang={lang} />;
+      if (activeTab === "flagged") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"ঝুঁকিপূর্ণ শিক্ষার্থী":"Flagged Students"}</SectionTitle>
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {STUDENTS.filter(s=>s.risk!=="low").map(s => (
+              <Card key={s.id} style={{ borderLeft:`4px solid ${s.risk==="high"?C.danger:C.gold}` }}>
+                <div style={{ display:"flex", gap:12, alignItems:"flex-start", flexWrap:"wrap" }}>
+                  <div style={{ width:44, height:44, borderRadius:"50%", background:s.risk==="high"?C.dangerBg:C.warningBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{s.name[0]}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6, flexWrap:"wrap" }}>
+                      <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700 }}>{s.name}</span>
+                      <RiskBadge level={s.risk} lang={lang} />
+                      <Badge color="grey">{lang==="bn"?"শ্রেণী":"Class"} {s.class}{s.section}</Badge>
+                    </div>
+                    <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
+                      {s.risk==="high" && <Badge color="red">{lang==="bn"?"উপস্থিতি কম":"Low Attendance"}</Badge>}
+                      <Badge color="amber">{lang==="bn"?"পারফরম্যান্স":"Performance"}</Badge>
+                    </div>
+                    <div style={{ padding:"8px 12px", background:C.warm, borderRadius:6, marginBottom:8 }}>
+                      <div style={{ display:"flex", gap:4, alignItems:"center", marginBottom:4 }}>
+                        <AIBadge />
+                        <span style={{ fontSize:11, fontWeight:700, color:C.dark, fontFamily:"'Sora',sans-serif" }}>{lang==="bn"?"পরামর্শ":"Recommendation"}</span>
+                      </div>
+                      <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#555", margin:0 }}>
+                        {lang==="bn" ? "অভিভাবকের সাথে যোগাযোগ করুন এবং অতিরিক্ত ক্লাসের ব্যবস্থা করুন।" : "Contact parents and arrange extra tutoring sessions."}
+                      </p>
+                    </div>
+                    <Btn size="sm" variant="ghost">{lang==="bn"?"অভিভাবককে সতর্ক করুন":"Alert Parent"}</Btn>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "assessments") return <TeacherAssessmentsTab lang={lang} />;
+      if (activeTab === "studentprofiles") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"শিক্ষার্থীর প্রোফাইল":"Student Profiles"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:14 }}>
+            {STUDENTS.map(s => (
+              <Card key={s.id} style={{ cursor:"pointer" }}>
+                <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:10 }}>
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:s.risk==="high"?C.dangerBg:s.risk==="medium"?C.warningBg:C.successBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, fontFamily:"'Hind Siliguri',sans-serif", border:`2px solid ${s.risk==="high"?C.danger:s.risk==="medium"?C.gold:C.success}` }}>{s.name[0]}</div>
+                  <div>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:700 }}>{s.name}</div>
+                    <div style={{ fontSize:11, color:"#999" }}>Roll: {s.roll} · {s.class}{s.section}</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:18, fontWeight:700, color:C.forest }}>{s.score}</span>
+                  <RiskBadge level={s.risk} lang={lang} />
+                </div>
+                <div style={{ height:4, background:C.muted, borderRadius:2 }}>
+                  <div style={{ width:`${s.score}%`, height:"100%", background:s.score>=75?C.success:s.score>=50?C.warning:C.danger, borderRadius:2 }} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "syllabus") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"পাঠ্যক্রমের অগ্রগতি":"Syllabus Tracker"}</SectionTitle>
+          {SUBJECTS.slice(0,5).map(sub => {
+            const pct = Math.floor(40+Math.random()*55);
+            return (
+              <Card key={sub} style={{ marginBottom:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                  <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700 }}>{sub}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13, fontWeight:600, color:C.forest }}>{pct}%</span>
+                </div>
+                <div style={{ height:8, background:C.muted, borderRadius:4, overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${pct}%`, background:pct>=70?C.success:pct>=50?C.warning:C.danger, borderRadius:4 }} />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      );
+      if (activeTab === "library") return <LibraryTab lang={lang} downloads={downloads} setDownloads={setDownloads} />;
+      if (activeTab === "training") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"শিক্ষক প্রশিক্ষণ":"Teacher Training"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
+            {[
+              { title:"আধুনিক শিক্ষাদান পদ্ধতি", subject:"শিক্ষাবিজ্ঞান", modules:8, done:6, cert:true },
+              { title:"ডিজিটাল ক্লাসরুম ব্যবস্থাপনা", subject:"আইসিটি", modules:6, done:3, cert:false },
+              { title:"শিক্ষার্থীর মানসিক স্বাস্থ্য সহায়তা", subject:"মনোবিজ্ঞান", modules:5, done:5, cert:true },
+            ].map((c,i) => (
+              <Card key={i}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                  <Badge color="gold">{c.subject}</Badge>
+                  {c.cert && <Badge color="green">🏆 সার্টিফিকেট</Badge>}
+                </div>
+                <h4 style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, color:C.dark, margin:"0 0 10px" }}>{c.title}</h4>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6, fontSize:12, color:"#666" }}>
+                  <span>{c.done}/{c.modules} {lang==="bn"?"মডিউল":"modules"}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono',monospace" }}>{Math.round(c.done/c.modules*100)}%</span>
+                </div>
+                <div style={{ height:6, background:C.muted, borderRadius:3 }}>
+                  <div style={{ width:`${c.done/c.modules*100}%`, height:"100%", background:C.forest, borderRadius:3 }} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "profile") return <TeacherProfile lang={lang} />;
+      if (activeTab === "notices") return <NoticesTab lang={lang} />;
+      if (activeTab === "messages") return <MessagesTab lang={lang} />;
+    }
+
+    // ADMIN
+    if (role === "admin") {
+      if (activeTab === "overview") return <AdminOverview lang={lang} />;
+      if (activeTab === "attendance") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"ডিজিটাল উপস্থিতি":"Digital Attendance"}</SectionTitle>
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <Badge color="green">✅ উপস্থিত: 38</Badge>
+            <Badge color="red">❌ অনুপস্থিত: 4</Badge>
+            <Badge color="amber">⏰ দেরি: 2</Badge>
+          </div>
+          <Card>
+            <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700, marginBottom:12 }}>{lang==="bn"?"শিক্ষার্থীর উপস্থিতি":"Student Attendance"}</div>
+            {STUDENTS.map(s => (
+              <div key={s.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"8px 0", borderBottom:`1px solid ${C.muted}` }}>
+                <div style={{ width:32, height:32, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:700, flexShrink:0 }}>{s.name[0]}</div>
+                <span style={{ flex:1, fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>{s.name}</span>
+                <div style={{ display:"flex", gap:6 }}>
+                  {["উপস্থিত","অনুপস্থিত","দেরি"].map((label,li) => (
+                    <button key={label} style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${li===0?C.success:li===1?C.danger:C.warning}`, background: li===0 ? C.successBg : "transparent", color: li===0?C.success:li===1?C.danger:C.warning, fontSize:11, cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif" }}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <Btn style={{ marginTop:14 }}>{lang==="bn"?"উপস্থিতি জমা দিন":"Submit Attendance"}</Btn>
+          </Card>
+        </div>
+      );
+      if (activeTab === "students") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"শিক্ষার্থীর রেকর্ড":"Student Records"}</SectionTitle>
+          <Card>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"'Hind Siliguri',sans-serif", fontSize:13 }}>
+              <thead>
+                <tr style={{ background:C.warm }}>
+                  {["নাম","শ্রেণী","বিভাগ","স্কোর","উপস্থিতি","ঝুঁকি"].map(h => (
+                    <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:700, fontSize:12, color:"#555", borderBottom:`1px solid ${C.muted}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {STUDENTS.map((s,i) => (
+                  <tr key={s.id} style={{ borderBottom:`1px solid ${C.muted}`, background:i%2===0?"transparent":C.warm+"50" }}>
+                    <td style={{ padding:"10px 12px", fontWeight:600 }}>{s.name}</td>
+                    <td style={{ padding:"10px 12px" }}>{s.class}</td>
+                    <td style={{ padding:"10px 12px" }}>{s.section}</td>
+                    <td style={{ padding:"10px 12px", fontFamily:"'JetBrains Mono',monospace", fontWeight:600, color:C.forest }}>{s.score}</td>
+                    <td style={{ padding:"10px 12px" }}><Badge color={s.attendance>=85?"green":"amber"}>{s.attendance}%</Badge></td>
+                    <td style={{ padding:"10px 12px" }}><RiskBadge level={s.risk} lang={lang} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      );
+      if (activeTab === "teachers") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"শিক্ষকের তালিকা":"Teacher Registry"}</SectionTitle>
+          {TEACHERS.map(t => (
+            <Card key={t.id} style={{ marginBottom:12 }}>
+              <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+                <div style={{ width:44, height:44, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:18, fontWeight:700 }}>{t.name[0]}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700, marginBottom:4 }}>{t.name}</div>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                    <Badge color="gold">{t.subject}</Badge>
+                    <Badge color="grey">{t.experience} {lang==="bn"?"বছর":"yrs"}</Badge>
+                    <Badge color="green">{lang==="bn"?"গড় স্কোর":"Avg"}: {t.avgClassScore}</Badge>
+                  </div>
+                </div>
+                <Btn size="sm" variant="ghost">{lang==="bn"?"প্রোফাইল দেখুন":"View Profile"}</Btn>
+              </div>
+            </Card>
+          ))}
+        </div>
+      );
+      if (activeTab === "reports") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"স্বয়ংক্রিয় রিপোর্ট":"Automated Reports"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:14 }}>
+            {[
+              { title:"মাসিক শিক্ষামূলক রিপোর্ট", icon:"📊" },
+              { title:"ত্রৈমাসিক রিপোর্ট", icon:"📈" },
+              { title:"বার্ষিক রিপোর্ট", icon:"📋" },
+              { title:"ঝরে পড়ার ঝুঁকি রিপোর্ট", icon:"⚠️" },
+            ].map((r,i) => (
+              <Card key={i} style={{ textAlign:"center", cursor:"pointer" }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>{r.icon}</div>
+                <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:700, color:C.dark, marginBottom:12 }}>{r.title}</div>
+                <Btn size="sm" variant="gold">{lang==="bn"?"তৈরি করুন":"Generate"}</Btn>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "fees") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"রাজস্ব ও ফি":"Revenue & Fees"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:14, marginBottom:20 }}>
+            <KPICard label={lang==="bn"?"মোট বাজেট":"Total Budget"} value="৳৪.২ কোটি" icon="💰" color={C.forest} />
+            <KPICard label={lang==="bn"?"সরকারি বরাদ্দ":"Govt Allocation"} value="৳২.৮ কোটি" icon="🏛️" color={C.info} />
+            <KPICard label={lang==="bn"?"সংগৃহীত ফি":"Collected Fees"} value="৳১.১ কোটি" icon="✅" color={C.success} />
+            <KPICard label={lang==="bn"?"বকেয়া":"Outstanding"} value="12%" icon="⚠️" color={C.warning} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"রাজস্বের উৎস":"Revenue Sources"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={[{name:"সরকারি",value:65,color:C.forest},{name:"দাতা",value:15,color:C.gold},{name:"ফি",value:16,color:C.emerald},{name:"অন্যান্য",value:4,color:C.info}]} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name,value})=>`${name} ${value}%`} fontSize={11}>
+                  {[C.forest,C.gold,C.emerald,C.info].map((c,i)=><Cell key={i} fill={c} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+      if (activeTab === "notices") return <NoticesTab lang={lang} />;
+      if (activeTab === "messages") return <MessagesTab lang={lang} />;
+    }
+
+    // GOVERNMENT
+    if (role === "government") {
+      if (activeTab === "national") return <NationalOverview lang={lang} />;
+      if (activeTab === "district") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"জেলা বিশ্লেষণ":"District Analytics"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14 }}>
+            {DISTRICTS.map(d => (
+              <Card key={d.name}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                  <div>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:16, fontWeight:700, color:C.dark }}>{d.name}</div>
+                    <div style={{ fontSize:12, color:"#888" }}>{d.div} বিভাগ</div>
+                  </div>
+                  <Badge color={d.dropout<10?"green":d.dropout<15?"amber":"red"}>{d.dropout<10?(lang==="bn"?"ভালো":"Good"):d.dropout<15?(lang==="bn"?"সতর্কতা":"Watch"):(lang==="bn"?"জরুরি":"Critical")}</Badge>
+                </div>
+                <div style={{ display:"flex", gap:10, marginBottom:10 }}>
+                  <div style={{ flex:1, textAlign:"center", padding:"8px", background:C.warm, borderRadius:6 }}>
+                    <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:20, fontWeight:700, color:C.forest }}>{d.score}</div>
+                    <div style={{ fontSize:10, color:"#888" }}>{lang==="bn"?"গড় স্কোর":"Avg Score"}</div>
+                  </div>
+                  <div style={{ flex:1, textAlign:"center", padding:"8px", background:d.dropout>=15?C.dangerBg:C.warm, borderRadius:6 }}>
+                    <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:20, fontWeight:700, color:d.dropout>=15?C.danger:C.dark }}>{d.dropout}%</div>
+                    <div style={{ fontSize:10, color:"#888" }}>{lang==="bn"?"ঝরে পড়া":"Dropout"}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize:12, color:"#999", display:"flex", gap:12 }}>
+                  <span>🏫 {d.schools.toLocaleString()}</span>
+                  <span>🎓 {(d.students/1000000).toFixed(1)}M</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "dropout") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"ঝরে পড়ার ঝুঁকি বিশ্লেষণ":"Dropout Risk Analysis"}</SectionTitle>
+          <Card style={{ marginBottom:20 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={DISTRICTS.map(d=>({name:d.name,risk:d.dropout}))}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="name" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <YAxis tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="risk" name={lang==="bn"?"ঝরে পড়ার হার %":"Dropout Risk %"} radius={[4,4,0,0]}>
+                  {DISTRICTS.map((d,i) => <Cell key={i} fill={d.dropout<10?C.success:d.dropout<15?C.warning:C.danger} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+          <div style={{ padding:"16px", background:C.warningBg, borderRadius:12, borderLeft:`4px solid ${C.gold}` }}>
+            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+              <AIBadge />
+              <span style={{ fontFamily:"'Sora',sans-serif", fontSize:13, fontWeight:700, color:C.warning }}>AI বিশ্লেষণ</span>
+            </div>
+            <p style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:C.warning, margin:0 }}>
+              {lang==="bn" ? "বরিশাল ও সিলেট বিভাগে ঝরে পড়ার হার সবচেয়ে বেশি। দারিদ্র্য ও বিদ্যালয় থেকে দূরত্ব প্রধান কারণ। স্কুল মিল কর্মসূচি ও পরিবহন সুবিধা চালু করলে ৪০% পর্যন্ত ঝরে পড়া কমানো সম্ভব।" : "Barisal and Sylhet divisions show highest dropout rates. Poverty and school distance are primary causes. Implementing school meals and transport could reduce dropout by up to 40%."}
+            </p>
+          </div>
+        </div>
+      );
+      if (activeTab === "teacherregistry") return <GovTeacherRegistry lang={lang} />;
+      if (activeTab === "assessmentintel") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"মূল্যায়ন বুদ্ধিমত্তা":"Assessment Intelligence"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:14, marginBottom:20 }}>
+            <KPICard label={lang==="bn"?"মোট মূল্যায়ন":"Total Assessments"} value="48,241" icon="📝" color={C.forest} />
+            <KPICard label={lang==="bn"?"জাতীয় গড় স্কোর":"National Avg"} value="64.2" sub="/100" icon="📊" color={C.gold} />
+            <KPICard label={lang==="bn"?"পাসের হার":"Pass Rate"} value="78.4%" icon="✅" color={C.success} />
+            <KPICard label={lang==="bn"?"এই মাসে":"This Month"} value="8,421" icon="📈" color={C.info} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"জেলাভিত্তিক মূল্যায়ন স্কোর":"Assessment Scores by District"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={DISTRICTS.map(d=>({name:d.name,score:Math.floor(55+d.score*0.15)}))}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="name" tick={{ fontSize:11, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <YAxis domain={[50,80]} tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="score" name={lang==="bn"?"গড় মূল্যায়ন স্কোর":"Avg Assessment Score"} fill={C.forest} radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+      if (activeTab === "talent") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"প্রতিভা ইঞ্জিন":"Talent Engine"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))", gap:14 }}>
+            {STUDENTS.filter(s=>s.score>=75).sort((a,b)=>b.score-a.score).map((s,i) => (
+              <Card key={s.id}>
+                <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:10 }}>
+                  <div style={{ width:44, height:44, borderRadius:"50%", background:`linear-gradient(135deg, ${C.forest}, ${C.gold})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:18, fontWeight:700 }}>{s.name[0]}</div>
+                  <div>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700 }}>{s.name}</div>
+                    <div style={{ fontSize:11, color:"#999" }}>{lang==="bn"?"শ্রেণী":"Class"} {s.class} · খুলনা</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:22, fontWeight:700, color:C.forest }}>{s.score}</span>
+                  <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                    {s.score>=90&&<Badge color="gold">⭐ শিক্ষার তারকা</Badge>}
+                    {s.score>=85&&<Badge color="green">🏆 সেরা শিক্ষার্থী</Badge>}
+                  </div>
+                </div>
+                {s.score>=90&&<Badge color="gold">💰 বৃত্তির যোগ্য</Badge>}
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "policy") return <PolicySimulation lang={lang} />;
+      if (activeTab === "aireports") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"AI প্রতিবেদন":"AI Reports"}</SectionTitle>
+          <Card style={{ marginBottom:20 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+              {[lang==="bn"?"বিভাগ":"Division", lang==="bn"?"জেলা":"District", lang==="bn"?"রিপোর্টের ধরন":"Report Type"].map((label,i) => (
+                <div key={i}>
+                  <label style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, fontWeight:600, display:"block", marginBottom:6 }}>{label}</label>
+                  <select style={{ width:"100%", padding:"9px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:13, fontFamily:"'Hind Siliguri',sans-serif" }}>
+                    {i===0?["সকল","ঢাকা","চট্টগ্রাম","খুলনা"].map(o=><option key={o}>{o}</option>):i===1?["সকল","ঢাকা","খুলনা","সিলেট"].map(o=><option key={o}>{o}</option>):["জেলা বিশ্লেষণ","বিদ্যালয় পারফরম্যান্স","শিক্ষক মূল্যায়ন"].map(o=><option key={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <Btn variant="gold">✦ {lang==="bn"?"AI রিপোর্ট তৈরি করুন":"Generate AI Report"}</Btn>
+          </Card>
+          <div style={{ padding:"20px", background:C.warm, borderRadius:12, border:`1px solid ${C.muted}` }}>
+            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:12 }}>
+              <AIBadge />
+              <span style={{ fontFamily:"'Sora',sans-serif", fontSize:14, fontWeight:700 }}>খুলনা জেলা শিক্ষা প্রতিবেদন — মে ২০২৪</span>
+            </div>
+            <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, color:"#444", lineHeight:1.8 }}>
+              <strong>নির্বাহী সারসংক্ষেপ:</strong> খুলনা জেলায় বর্তমানে ২,১০৮টি শিক্ষা প্রতিষ্ঠানে ৮.৯ লক্ষ শিক্ষার্থী অধ্যয়নরত। জাতীয় গড়ের তুলনায় পারফরম্যান্স ১.২% কম।<br/>
+              <strong>মূল ঝুঁকি:</strong> ১০.১% ঝরে পড়ার হার জাতীয় গড়ের উপরে। বিশেষত তৃতীয় ও চতুর্থ শ্রেণীতে উপস্থিতি কম।<br/>
+              <strong>সুপারিশ:</strong> (১) স্কুল মিল কর্মসূচি সম্প্রসারণ। (২) ৫০ জন অতিরিক্ত গণিত শিক্ষক নিয়োগ। (৩) মোবাইল লাইব্রেরি চালু।
+            </div>
+          </div>
+        </div>
+      );
+      if (activeTab === "transfers") return (
+        <div>
+          <SectionTitle badge={<AIBadge />}>{lang==="bn"?"AI শিক্ষক বদলি সুপারিশ":"AI Transfer Recommendations"}</SectionTitle>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {TEACHERS.map((t,i) => (
+              <Card key={t.id}>
+                <div style={{ display:"flex", gap:12, alignItems:"flex-start", flexWrap:"wrap" }}>
+                  <div style={{ width:44, height:44, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:18, fontWeight:700 }}>{t.name[0]}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, fontWeight:700, marginBottom:4 }}>{t.name}</div>
+                    <div style={{ fontSize:13, color:"#555", marginBottom:6 }}>{t.school} → <strong>বরিশাল মডেল স্কুল</strong></div>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+                      <Badge color="gold">{t.subject}</Badge>
+                      <Badge color="green">{lang==="bn"?"গণিত চাহিদা: সংকটজনক":"Math Demand: Critical"}</Badge>
+                    </div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      {[{label:lang==="bn"?"বিষয় মিল":"Subject Match",v:88},{label:lang==="bn"?"গ্রামীণ অগ্রাধিকার":"Rural Priority",v:t.transferScore},{label:lang==="bn"?"অভিজ্ঞতা":"Experience",v:Math.min(t.experience*8,95)}].map(m => (
+                        <div key={m.label} style={{ background:C.warm, borderRadius:6, padding:"6px 10px", textAlign:"center" }}>
+                          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:14, fontWeight:700, color:C.forest }}>{m.v}%</div>
+                          <div style={{ fontSize:9, color:"#888" }}>{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <Btn size="sm">{lang==="bn"?"অনুমোদন":"Approve"}</Btn>
+                    <Btn size="sm" variant="ghost">{lang==="bn"?"প্রত্যাখ্যান":"Reject"}</Btn>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "notices") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"নতুন নোটিশ তৈরি করুন":"Create Notice"}</SectionTitle>
+          <Card style={{ marginBottom:20 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <input placeholder={lang==="bn"?"নোটিশের শিরোনাম...":"Notice title..."} style={{ padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:14, fontFamily:"'Hind Siliguri',sans-serif" }} />
+              <textarea rows={4} placeholder={lang==="bn"?"নোটিশের বিস্তারিত বিবরণ...":"Notice body..."} style={{ padding:"10px 12px", borderRadius:6, border:`1px solid ${C.muted}`, fontSize:14, fontFamily:"'Hind Siliguri',sans-serif", resize:"vertical" }} />
+              <div style={{ display:"flex", gap:8 }}>
+                <Btn variant="gold">{lang==="bn"?"নোটিশ প্রকাশ করুন":"Publish Notice"}</Btn>
+                <Btn variant="ghost">{lang==="bn"?"সকল নোটিশ":"All Notices"}</Btn>
+              </div>
+            </div>
+          </Card>
+          <NoticesTab lang={lang} />
+        </div>
+      );
+      if (activeTab === "messages") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"বার্তার ইনবক্স":"Messages Inbox"}</SectionTitle>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {[
+              { from:"আরিফ হোসেন", role:"ছাত্র", cat:"প্রশ্ন", subject:"পরীক্ষার সময়সূচি", preview:"আগামী পরীক্ষার সময়সূচি কবে প্রকাশ পাবে?", time:"২ ঘণ্টা আগে", unread:true },
+              { from:"রোকেয়া বেগম", role:"অভিভাবক", cat:"সমস্যা", subject:"বিদ্যালয়ে যাতায়াতের সমস্যা", preview:"আমাদের এলাকায় কোনো স্কুল বাস নেই।", time:"৫ ঘণ্টা আগে", unread:true },
+              { from:"ফাতেমা বেগম", role:"শিক্ষক", cat:"মতামত", subject:"ডিজিটাল লাইব্রেরির উন্নতি", preview:"নতুন বিজ্ঞান বই যোগ করলে ভালো হবে।", time:"১ দিন আগে", unread:false },
+            ].map((m,i) => (
+              <Card key={i} style={{ background:m.unread?C.infoBg:C.paper }}>
+                <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:16, fontWeight:700, flexShrink:0 }}>{m.from[0]}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4, flexWrap:"wrap" }}>
+                      <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:14, fontWeight:700 }}>{m.from}</span>
+                      <Badge color={m.role==="ছাত্র"?"blue":m.role==="অভিভাবক"?"green":"gold"}>{m.role}</Badge>
+                      <Badge color={m.cat==="সমস্যা"?"red":m.cat==="প্রশ্ন"?"blue":"grey"}>{m.cat}</Badge>
+                      <span style={{ fontSize:11, color:"#999", marginLeft:"auto" }}>{m.time}</span>
+                      {m.unread && <div style={{ width:8, height:8, borderRadius:"50%", background:C.forest, flexShrink:0 }} />}
+                    </div>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight:600, color:C.dark, marginBottom:2 }}>{m.subject}</div>
+                    <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#666", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.preview}</div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+      if (activeTab === "revenue") return (
+        <div>
+          <SectionTitle>{lang==="bn"?"রাজস্ব ও তহবিল":"Revenue & Funding"}</SectionTitle>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:14, marginBottom:20 }}>
+            <KPICard label={lang==="bn"?"মোট বাজেট":"Total Budget"} value="৳৪২,০০০ কোটি" icon="💰" color={C.forest} />
+            <KPICard label={lang==="bn"?"সরকারি বরাদ্দ":"Govt Allocation"} value="৳২৮,৫০০ কোটি" icon="🏛️" color={C.info} />
+            <KPICard label={lang==="bn"?"দাতা তহবিল":"Donor Funding"} value="৳৮,২০০ কোটি" icon="🤝" color={C.gold} />
+            <KPICard label={lang==="bn"?"টিউশন ফি":"Tuition Fees"} value="৳৫,৩০০ কোটি" icon="📚" color={C.emerald} />
+          </div>
+          <Card>
+            <SectionTitle>{lang==="bn"?"বিভাগীয় বরাদ্দ":"Divisional Allocation"}</SectionTitle>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={[
+                {div:"ঢাকা",amt:12000},{div:"চট্টগ্রাম",amt:8500},{div:"খুলনা",amt:5200},{div:"রাজশাহী",amt:4800},
+                {div:"সিলেট",amt:4200},{div:"বরিশাল",amt:3100},{div:"রংপুর",amt:3600},{div:"ময়মনসিংহ",amt:600},
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.muted} />
+                <XAxis dataKey="div" tick={{ fontSize:10, fontFamily:"'Hind Siliguri',sans-serif" }} />
+                <YAxis tick={{ fontSize:11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="amt" name={lang==="bn"?"বরাদ্দ (কোটি ৳)":"Allocation (Crore ৳)"} fill={C.forest} radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <Card style={{ textAlign:"center", padding:60 }}>
+        <div style={{ fontSize:40, marginBottom:12 }}>🚧</div>
+        <div style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:15, color:"#888" }}>{lang==="bn"?"শীঘ্রই আসছে":"Coming Soon"}</div>
+      </Card>
+    );
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: ${C.warm}; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: ${C.forest}; border-radius: 3px; }
+        input, select, textarea { font-size: 16px !important; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: ${C.forest} !important; box-shadow: 0 0 0 2px rgba(0,92,75,0.1); }
+        @media (max-width: 768px) {
+          .sidebar-full { display: none !important; }
+          .mobile-bottom-nav { display: flex !important; }
+        }
+      `}</style>
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:C.warm }}>
+        {/* Sidebar — desktop */}
+        <div className="sidebar-full">
+          <Sidebar role={role} activeTab={activeTab} onTabChange={tab => { setActiveTab(tab); setShowNotifs(false); }} lang={lang} collapsed={collapsed} onToggle={() => setCollapsed(c=>!c)} onLogout={() => setSession(null)} />
+        </div>
+        {/* Main */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <TopBar title={getPageTitle()} lang={lang} setLang={setLang} notifications={notifications} onNotifClick={() => setShowNotifs(s=>!s)} showNotifs={showNotifs} role={role} />
+          {/* Parent child selector */}
+          {role === "parent" && (
+            <div style={{ background:C.paper, borderBottom:`1px solid ${C.muted}`, padding:"10px 24px", display:"flex", gap:10, alignItems:"center" }}>
+              <span style={{ fontFamily:"'Hind Siliguri',sans-serif", fontSize:12, color:"#888", marginRight:4 }}>{lang==="bn"?"সন্তান:":"Child:"}</span>
+              {children.map((c,i) => (
+                <button key={c.id} onClick={() => setSelectedChild(i)}
+                  style={{ display:"flex", gap:8, alignItems:"center", padding:"6px 14px", borderRadius:9999, border:`1.5px solid ${selectedChild===i?C.forest:C.muted}`, background: selectedChild===i ? C.successBg : "transparent", cursor:"pointer", fontFamily:"'Hind Siliguri',sans-serif", fontSize:13, fontWeight: selectedChild===i ? 700 : 400, color: selectedChild===i ? C.forest : "#555", transition:"all 0.15s" }}>
+                  <div style={{ width:22, height:22, borderRadius:"50%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:10, fontWeight:700 }}>{c.name[0]}</div>
+                  {c.name}
+                  <Badge color="grey">{lang==="bn"?"শ্রেণী":"Cls"} {c.class}{c.section}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Content */}
+          <div style={{ flex:1, overflowY:"auto", padding:"24px", background:C.warm }} onClick={() => showNotifs && setShowNotifs(false)}>
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
